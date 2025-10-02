@@ -1,0 +1,16 @@
+# Dockerfile.dev optimizado
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copiar SOLO package.json primero
+COPY package.json package-lock.json* ./
+
+# Instalar dependencias (se cachea si package.json no cambia)
+RUN npm install
+
+# Copiar el resto del código DESPUÉS
+COPY . .
+
+EXPOSE 3000
+CMD ["npm", "start"]

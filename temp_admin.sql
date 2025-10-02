@@ -1,0 +1,2 @@
+INSERT INTO users (email, password, name, role, age, "createdAt", "updatedAt") 
+VALUES ('admin@biblioteca.com', '$2b$10$HayEnPIY2S3MCF63Pr1qBe9frp9fAY7Xwrtp94A6fXV/c6Ui8VAAO', 'Administrador', 'admin', 30, NOW(), NOW());
