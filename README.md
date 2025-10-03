@@ -100,8 +100,7 @@ npm --version
 ### 1. Clonar el Repositorio
 
 ```bash
-git clone <tu-repositorio>
-cd nestjs-react-postgres-docker
+git clone https://github.com/Mfriasq/CMPC-libros.git
 ```
 
 ### 2. Configuración de Variables de Entorno
@@ -259,9 +258,7 @@ El sistema incluye usuarios predefinidos:
 
 ### 🔐 Autenticación
 
-1. **Registro**: Crear nueva cuenta (rol USER por defecto)
-2. **Login**: Acceder con email y contraseña
-3. **Dashboard**: Interfaz personalizada según rol de usuario
+1. **Login**: Acceder con email y contraseña
 
 ### 📚 Gestión de Libros (Admin/Librarian)
 
