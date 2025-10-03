@@ -9,12 +9,13 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
-      POSTGRES_DB: nestjs_db
+      POSTGRES_DB: biblioteca
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/01-init.sql
+      - ./docker/populate_libros.sql:/docker-entrypoint-initdb.d/02-populate_libros.sql
     networks:
       - app-network
 
@@ -32,7 +33,7 @@ services:
       DB_PORT: 5432
       DB_USERNAME: postgres
       DB_PASSWORD: password
-      DB_NAME: nestjs_db
+      DB_NAME: biblioteca
       PORT: 3001
       NODE_ENV: production
       FRONTEND_URL: http://localhost:3000

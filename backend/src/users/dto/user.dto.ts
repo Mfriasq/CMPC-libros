@@ -7,6 +7,7 @@ import {
   Max,
   MinLength,
   IsEnum,
+  isEmail,
 } from "class-validator";
 import { ApiProperty } from "@nestjs/swagger";
 import { UserRole } from "../user.model";
@@ -63,6 +64,15 @@ export class UpdateUserDto {
   @IsOptional()
   @IsString()
   name?: string;
+
+  @ApiProperty({
+    description: "Email del usuario",
+    example: "usuario@usuario.com",
+    required: false,
+  })
+  @IsOptional()
+  @IsEmail()
+  email?: string;
 
   @ApiProperty({
     description: "Nueva contraseña del usuario",

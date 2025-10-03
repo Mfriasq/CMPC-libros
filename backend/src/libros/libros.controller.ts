@@ -11,7 +11,14 @@ import {
   HttpStatus,
   HttpCode,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
+  Res,
+  Header,
 } from "@nestjs/common";
+import { Response } from "express";
+import { FileInterceptor } from "@nestjs/platform-express";
 import {
   ApiTags,
   ApiOperation,
@@ -20,6 +27,7 @@ import {
   ApiQuery,
   ApiBody,
   ApiBearerAuth,
+  ApiConsumes,
 } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { RolesGuard } from "../auth/roles.guard";
@@ -73,24 +81,46 @@ export class LibrosController {
   @Get()
   @UseGuards(JwtAuthGuard) // Requiere estar autenticado
   @ApiBearerAuth()
-  @ApiOperation({ summary: "Obtener todos los libros." })
+  @ApiOperation({ summary: "Obtener todos los libros con paginación." })
+  @ApiQuery({
+    name: "page",
+    required: false,
+    description: "Número de página (empezando desde 1)",
+    example: 1,
+  })
+  @ApiQuery({
+    name: "limit",
+    required: false,
+    description: "Cantidad de elementos por página",
+    example: 10,
+  })
   @ApiResponse({
     status: 200,
-    description: "Lista de libros.",
-    type: [LibroResponseDto],
+    description: "Lista paginada de libros.",
   })
   @ApiResponse({
     status: 401,
     description: "No autorizado - Token requerido.",
   })
-  async findAll(): Promise<Libro[]> {
-    return this.librosService.findAll();
+  async findAll(
+    @Query("page") page: number = 1,
+    @Query("limit") limit: number = 10
+  ): Promise<{
+    data: Libro[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
+    return this.librosService.findAll(+page, +limit);
   }
 
   @Get("search")
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: "Buscar libros por múltiples criterios" })
+  @ApiOperation({
+    summary: "Buscar libros por múltiples criterios con paginación",
+  })
   @ApiQuery({
     name: "titulo",
     required: false,
@@ -115,10 +145,22 @@ export class LibrosController {
     description: "Buscar por género (búsqueda exacta)",
     example: "Ficción",
   })
+  @ApiQuery({
+    name: "page",
+    required: false,
+    description: "Número de página (empezando desde 1)",
+    example: 1,
+  })
+  @ApiQuery({
+    name: "limit",
+    required: false,
+    description: "Cantidad de elementos por página",
+    example: 10,
+  })
   @ApiResponse({
     status: 200,
-    description: "Libros encontrados según los criterios de búsqueda.",
-    type: [LibroResponseDto],
+    description:
+      "Libros encontrados según los criterios de búsqueda con paginación.",
   })
   @ApiResponse({
     status: 401,
@@ -128,14 +170,28 @@ export class LibrosController {
     @Query("titulo") titulo?: string,
     @Query("autor") autor?: string,
     @Query("editorial") editorial?: string,
-    @Query("genero") genero?: string
-  ): Promise<Libro[]> {
-    return this.librosService.search({
-      titulo,
-      autor,
-      editorial,
-      genero,
-    });
+    @Query("generoId") generoId?: number,
+    @Query("estado") estado?: string,
+    @Query("page") page: number = 1,
+    @Query("limit") limit: number = 10
+  ): Promise<{
+    data: Libro[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
+    return this.librosService.search(
+      {
+        titulo,
+        autor,
+        editorial,
+        generoId,
+        estado,
+      },
+      +page,
+      +limit
+    );
   }
 
   @Get(":id")
@@ -274,5 +330,126 @@ export class LibrosController {
   })
   async restore(@Param("id", ParseIntPipe) id: number): Promise<Libro> {
     return this.librosService.restaurar(id);
+  }
+
+  @Post(":id/imagen")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.LIBRARIAN)
+  @UseInterceptors(FileInterceptor("imagen"))
+  @ApiBearerAuth()
+  @ApiConsumes("multipart/form-data")
+  @ApiOperation({
+    summary:
+      "Subir imagen para un libro (Solo bibliotecarios y administradores)",
+  })
+  @ApiParam({ name: "id", description: "ID del libro" })
+  @ApiBody({
+    schema: {
+      type: "object",
+      properties: {
+        imagen: {
+          type: "string",
+          format: "binary",
+          description:
+            "Archivo de imagen (jpg, jpeg, png, gif, webp) - máximo 5MB",
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Imagen subida exitosamente",
+    schema: {
+      type: "object",
+      properties: {
+        message: { type: "string" },
+        imagenUrl: { type: "string" },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: "Archivo inválido o no proporcionado",
+  })
+  @ApiResponse({
+    status: 404,
+    description: "Libro no encontrado",
+  })
+  @ApiResponse({
+    status: 403,
+    description:
+      "Acceso denegado - Se requieren permisos de bibliotecario o administrador",
+  })
+  async uploadImagen(
+    @Param("id", ParseIntPipe) id: number,
+    @UploadedFile() file: any
+  ): Promise<{ message: string; imagenUrl: string }> {
+    if (!file) {
+      throw new BadRequestException("No se proporcionó ningún archivo");
+    }
+
+    const imagenUrl = `/uploads/libros/${file.filename}`;
+    await this.librosService.updateImagenUrl(id, imagenUrl);
+
+    return {
+      message: "Imagen subida exitosamente",
+      imagenUrl,
+    };
+  }
+
+  @Get("export/csv")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.LIBRARIAN, UserRole.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: "Exportar libros a CSV",
+    description: "Genera y descarga un archivo CSV con todos los libros",
+  })
+  @ApiQuery({
+    name: "titulo",
+    required: false,
+    description: "Filtrar por título (búsqueda parcial)",
+  })
+  @ApiQuery({
+    name: "autor",
+    required: false,
+    description: "Filtrar por autor (búsqueda parcial)",
+  })
+  @ApiQuery({
+    name: "editorial",
+    required: false,
+    description: "Filtrar por editorial (búsqueda parcial)",
+  })
+  @ApiQuery({
+    name: "generoId",
+    required: false,
+    type: Number,
+    description: "Filtrar por ID de género",
+  })
+  @ApiQuery({
+    name: "estado",
+    required: false,
+    description: "Filtrar por estado (activo, eliminado)",
+  })
+  @Header("Content-Type", "text/csv")
+  @Header("Content-Disposition", 'attachment; filename="libros.csv"')
+  async exportToCsv(
+    @Res() res: Response,
+    @Query("titulo") titulo?: string,
+    @Query("autor") autor?: string,
+    @Query("editorial") editorial?: string,
+    @Query("generoId") generoId?: number,
+    @Query("estado") estado?: string
+  ): Promise<void> {
+    const filters = {
+      titulo,
+      autor,
+      editorial,
+      generoId,
+      estado,
+    };
+
+    const csvContent = await this.librosService.exportToCsv(filters);
+    res.send(csvContent);
   }
 }

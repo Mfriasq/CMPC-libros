@@ -7,13 +7,12 @@ import {
   DataType,
   PrimaryKey,
   AutoIncrement,
+  BelongsTo,
+  ForeignKey,
 } from "sequelize-typescript";
 import { ApiProperty } from "@nestjs/swagger";
-
-export enum EstadoLibro {
-  ACTIVO = "activo",
-  ELIMINADO = "eliminado",
-}
+import { Genero } from "../generos/genero.model";
+import { Estado } from "../estados/estado.model";
 
 @Table({
   tableName: "libros",
@@ -56,28 +55,49 @@ export class Libro extends Model<Libro> {
   precio: number;
 
   @Column({
-    type: DataType.BOOLEAN,
+    type: DataType.INTEGER,
     allowNull: false,
-  })
-  disponibilidad: boolean;
-
-  @Column({
-    type: DataType.STRING,
-    allowNull: false,
-  })
-  genero: string;
-
-  @Column({
-    type: DataType.ENUM(...Object.values(EstadoLibro)),
-    allowNull: false,
-    defaultValue: EstadoLibro.ACTIVO,
+    defaultValue: 0,
   })
   @ApiProperty({
-    description: "Estado del libro",
-    enum: EstadoLibro,
-    default: EstadoLibro.ACTIVO,
+    description: "Cantidad de ejemplares disponibles",
+    required: true,
   })
-  estado: EstadoLibro;
+  disponibilidad: number;
+
+  @Column({
+    type: DataType.STRING(500),
+    allowNull: true,
+  })
+  @ApiProperty({
+    description: "URL de la imagen del libro",
+    required: false,
+    example: "/uploads/libros/libro-123.jpg",
+  })
+  imagenUrl?: string;
+
+  @ForeignKey(() => Genero)
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: false,
+  })
+  @ApiProperty({ description: "ID del género del libro" })
+  generoId: number;
+
+  @BelongsTo(() => Genero)
+  genero: Genero;
+
+  @ForeignKey(() => Estado)
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: false,
+  })
+  @ApiProperty({ description: "ID del estado del libro" })
+  estadoId: number;
+
+  @BelongsTo(() => Estado)
+  @ApiProperty({ description: "Estado del libro" })
+  estado: Estado;
 
   @Column({
     type: DataType.DATE,

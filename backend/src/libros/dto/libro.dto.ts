@@ -1,7 +1,6 @@
 import {
   IsString,
   IsInt,
-  IsBoolean,
   IsOptional,
   Min,
   MaxLength,
@@ -47,42 +46,31 @@ export class CreateLibroDto {
   precio: number;
 
   @ApiProperty({
-    description: "Disponibilidad del libro",
-    example: true,
+    description: "Cantidad de ejemplares disponibles",
+    example: 5,
+    minimum: 0,
   })
-  @IsBoolean()
-  disponibilidad: boolean;
+  @IsInt()
+  @Min(0)
+  disponibilidad: number;
 
   @ApiProperty({
-    description: "Género del libro",
-    example: "Ficción",
-    enum: [
-      "Ficción",
-      "No Ficción",
-      "Ciencia Ficción",
-      "Romance",
-      "Misterio",
-      "Biografía",
-      "Historia",
-      "Poesía",
-      "Drama",
-      "Ensayo",
-    ],
+    description: "ID del género del libro",
+    example: 1,
   })
+  @IsInt()
+  @Min(1)
+  generoId: number;
+
+  @ApiProperty({
+    description: "URL de la imagen del libro",
+    example: "/uploads/libros/libro-123.jpg",
+    required: false,
+  })
+  @IsOptional()
   @IsString()
-  @IsIn([
-    "Ficción",
-    "No Ficción",
-    "Ciencia Ficción",
-    "Romance",
-    "Misterio",
-    "Biografía",
-    "Historia",
-    "Poesía",
-    "Drama",
-    "Ensayo",
-  ])
-  genero: string;
+  @MaxLength(500)
+  imagenUrl?: string;
 }
 
 export class UpdateLibroDto {
@@ -131,46 +119,35 @@ export class UpdateLibroDto {
   precio?: number;
 
   @ApiProperty({
-    description: "Disponibilidad del libro",
-    example: true,
+    description: "Cantidad de ejemplares disponibles",
+    example: 3,
+    minimum: 0,
     required: false,
   })
   @IsOptional()
-  @IsBoolean()
-  disponibilidad?: boolean;
+  @IsInt()
+  @Min(0)
+  disponibilidad?: number;
 
   @ApiProperty({
-    description: "Género del libro",
-    example: "Ficción",
+    description: "ID del género del libro",
+    example: 1,
     required: false,
-    enum: [
-      "Ficción",
-      "No Ficción",
-      "Ciencia Ficción",
-      "Romance",
-      "Misterio",
-      "Biografía",
-      "Historia",
-      "Poesía",
-      "Drama",
-      "Ensayo",
-    ],
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  generoId?: number;
+
+  @ApiProperty({
+    description: "URL de la imagen del libro",
+    example: "/uploads/libros/libro-123.jpg",
+    required: false,
   })
   @IsOptional()
   @IsString()
-  @IsIn([
-    "Ficción",
-    "No Ficción",
-    "Ciencia Ficción",
-    "Romance",
-    "Misterio",
-    "Biografía",
-    "Historia",
-    "Poesía",
-    "Drama",
-    "Ensayo",
-  ])
-  genero?: string;
+  @MaxLength(500)
+  imagenUrl?: string;
 }
 
 export class LibroResponseDto {
@@ -189,11 +166,18 @@ export class LibroResponseDto {
   @ApiProperty({ description: "Precio del libro en CLP" })
   precio: number;
 
-  @ApiProperty({ description: "Disponibilidad del libro" })
-  disponibilidad: boolean;
+  @ApiProperty({ description: "Cantidad de ejemplares disponibles" })
+  disponibilidad: number;
 
-  @ApiProperty({ description: "Género del libro" })
-  genero: string;
+  @ApiProperty({ description: "ID del género" })
+  generoId: number;
+
+  @ApiProperty({ description: "Información del género" })
+  genero: {
+    id: number;
+    nombre: string;
+    descripcion?: string;
+  };
 
   @ApiProperty({ description: "Estado del libro" })
   estado: string;
@@ -209,4 +193,7 @@ export class LibroResponseDto {
 
   @ApiProperty({ description: "Fecha de última actualización" })
   updatedAt: Date;
+
+  @ApiProperty({ description: "URL de la imagen del libro", required: false })
+  imagenUrl?: string;
 }

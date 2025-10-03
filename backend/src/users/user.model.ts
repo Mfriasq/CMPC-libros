@@ -7,8 +7,11 @@ import {
   DataType,
   PrimaryKey,
   AutoIncrement,
+  ForeignKey,
+  BelongsTo,
 } from "sequelize-typescript";
 import { ApiProperty } from "@nestjs/swagger";
+import { Estado } from "../estados/estado.model";
 
 export enum UserRole {
   USER = "user",
@@ -66,6 +69,18 @@ export class User extends Model<User> {
     default: UserRole.USER,
   })
   role: UserRole;
+
+  @ForeignKey(() => Estado)
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: false,
+  })
+  @ApiProperty({ description: "ID del estado del usuario" })
+  estadoId: number;
+
+  @BelongsTo(() => Estado)
+  @ApiProperty({ description: "Estado del usuario" })
+  estado: Estado;
 
   @CreatedAt
   @ApiProperty({ description: "Fecha de creación" })

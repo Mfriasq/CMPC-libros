@@ -162,4 +162,58 @@ export class UsersController {
   remove(@Param("id", ParseIntPipe) id: number): Promise<void> {
     return this.usersService.remove(id);
   }
+
+  @Post(":id/restore")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: "Restaurar un usuario eliminado (Solo administradores)",
+  })
+  @ApiParam({ name: "id", description: "ID del usuario" })
+  @ApiResponse({
+    status: 200,
+    description: "Usuario restaurado exitosamente",
+    type: User,
+  })
+  @ApiResponse({
+    status: 404,
+    description: "Usuario no encontrado",
+  })
+  @ApiResponse({
+    status: 403,
+    description: "Acceso denegado - Se requieren permisos de administrador",
+  })
+  @ApiResponse({
+    status: 401,
+    description: "No autorizado - Token requerido",
+  })
+  restore(@Param("id", ParseIntPipe) id: number): Promise<User> {
+    return this.usersService.restore(id);
+  }
+
+  @Get("search/:query")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: "Buscar usuarios por nombre o email (Solo administradores)",
+  })
+  @ApiParam({ name: "query", description: "Término de búsqueda" })
+  @ApiResponse({
+    status: 200,
+    description: "Lista de usuarios que coinciden con la búsqueda",
+    type: [User],
+  })
+  @ApiResponse({
+    status: 403,
+    description: "Acceso denegado - Se requieren permisos de administrador",
+  })
+  @ApiResponse({
+    status: 401,
+    description: "No autorizado - Token requerido",
+  })
+  search(@Param("query") query: string): Promise<User[]> {
+    return this.usersService.search(query);
+  }
 }

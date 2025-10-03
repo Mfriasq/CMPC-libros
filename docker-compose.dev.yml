@@ -8,14 +8,15 @@ services:
     container_name: nestjs_postgres_dev
     restart: always
     environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: admin
-      POSTGRES_DB: nestjs_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: biblioteca
     ports:
       - "5432:5432"
     volumes:
       - postgres_data_dev:/var/lib/postgresql/data
-      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/01-init.sql
+      - ./docker/populate_libros.sql:/docker-entrypoint-initdb.d/02-populate_libros.sql
     networks:
       - app-network
 
@@ -31,9 +32,9 @@ services:
     environment:
       DB_HOST: database
       DB_PORT: 5432
-      DB_USERNAME: admin
-      DB_PASSWORD: admin
-      DB_NAME: nestjs_db
+      DB_USERNAME: postgres
+      DB_PASSWORD: password
+      DB_NAME: biblioteca
       PORT: 3001
       NODE_ENV: development
       FRONTEND_URL: http://localhost:3000
