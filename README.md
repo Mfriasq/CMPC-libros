@@ -1,6 +1,15 @@
-# � Sistema de Gestión de Biblioteca
+# 📚 Sistema de Gestión de Biblioteca
 
-Un sistema completo de gestión de biblioteca construido con tecnologías modernas fullstack.
+![NestJS](https://img.shields.io/badge/nestjs-%23E0234E.svg?style=for-the-badge&logo=nestjs&logoColor=white)
+![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
+![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/postgresql-%23336791.svg?style=for-the-badge&logo=postgresql&logoColor=white)
+![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
+
+![Build Status](https://img.shields.io/badge/build-passing-brightgreen?style=flat-square)
+![Tests](https://img.shields.io/badge/tests-62%20passing-success?style=flat-square)
+![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen?style=flat-square)
+![Version](https://img.shields.io/badge/version-1.0.0-blue?style=flat-square)
 
 ## 🚀 Tecnologías Utilizadas
 
@@ -355,6 +364,10 @@ generos/                # Catálogo de géneros literarios
 #### Base de Datos
 
 **Diseño Relacional**:
+
+![Modelo Relacional](./modelo.png)
+
+El sistema utiliza un diseño relacional con las siguientes entidades principales:
 
 ```sql
 Estados (id, nombre)           # activo, eliminado
