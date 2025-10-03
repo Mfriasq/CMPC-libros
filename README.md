@@ -249,9 +249,7 @@ El sistema incluye usuarios predefinidos:
 
 ### 🔐 Autenticación
 
-1. **Registro**: Crear nueva cuenta (rol USER por defecto)
-2. **Login**: Acceder con email y contraseña
-3. **Dashboard**: Interfaz personalizada según rol de usuario
+1. **Login**: Acceder con email y contraseña
 
 ### 📚 Gestión de Libros (Admin/Librarian)
 
