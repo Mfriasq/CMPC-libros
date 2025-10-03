@@ -91,8 +91,7 @@ npm --version
 ### 1. Clonar el Repositorio
 
 ```bash
-git clone <tu-repositorio>
-cd nestjs-react-postgres-docker
+git clone https://github.com/Mfriasq/CMPC-libros.git
 ```
 
 ### 2. Configuración de Variables de Entorno
