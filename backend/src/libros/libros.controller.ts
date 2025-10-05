@@ -547,7 +547,6 @@ export class LibrosController {
 
   @Get("export/csv")
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.LIBRARIAN, UserRole.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({
     summary: "Exportar libros a CSV",

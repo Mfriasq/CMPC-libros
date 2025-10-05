@@ -21,6 +21,8 @@ docker rm -f nestjs_frontend_dev 2>$null
 Write-Host "Eliminando volúmenes de datos..." -ForegroundColor Yellow
 docker volume rm nestjs_postgres_data 2>$null
 docker volume rm nestjs_postgres_data_dev 2>$null
+docker volume rm nestjs_backend_uploads 2>$null
+docker volume rm nestjs_backend_logs 2>$null
 
 # 4. Limpiar imágenes huérfanas
 Write-Host "Limpiando imágenes no utilizadas..." -ForegroundColor Yellow

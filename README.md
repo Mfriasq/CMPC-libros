@@ -14,8 +14,6 @@
 ![Coverage](https://img.shields.io/badge/coverage-41.00%25-yellow?style=flat-square)
 ![Version](https://img.shields.io/badge/version-1.0.0-blue?style=flat-square)
 
-Una aplicación fullstack moderna para la gestión integral de bibliotecas, desarrollada con las mejores prácticas y tecnologías actuales.
-
 </div>
 
 ---
@@ -950,10 +948,6 @@ DB_PORT=5432
 DB_USERNAME=your_db_user
 DB_PASSWORD=your_db_password
 DB_NAME=biblioteca
-
-# Frontend
-REACT_APP_API_URL=https://your-api-domain.com
-REACT_APP_ENV=production
 ```
 
 #### Docker Registry
@@ -1030,7 +1024,6 @@ npm run build:frontend
 
 ### Testing
 
-- **Cobertura mínima**: 80% para nuevas funcionalidades
 - **Tests unitarios**: Obligatorios para servicios y controladores
 - **Tests de integración**: Recomendados para flujos complejos
 

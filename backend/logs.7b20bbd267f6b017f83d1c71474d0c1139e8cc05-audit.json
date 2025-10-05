@@ -11,14 +11,14 @@
             "hash": "0ac4123576e9bc9e858d9926ff609dbfd16ea88c387ca91d9225c70b823b3890"
         },
         {
-            "date": 1759693614727,
-            "name": "logs/audit-2025-10-05.log",
-            "hash": "0e23a63f8f5bdfb57190cfb7981d84a9048222adc59beec047b1c2e84aafa697"
+            "date": 1759696775775,
+            "name": "logs\\audit-2025-10-05.log.1",
+            "hash": "8c680d858e7f296c7674ee5e13626017749e37c8f8fe35b5f6fa0d4990598388"
         },
         {
-            "date": 1759694736221,
+            "date": 1759705222762,
             "name": "logs/audit-2025-10-05.log.1",
-            "hash": "d9a7e70689dbfaa3a781314e7cc91e7e8b1cf48c959b8fb08e4923f36d6d2740"
+            "hash": "66987dec9532b790f88302e5bd393f816aa23a5577fec7428e3c558b21233354"
         }
     ],
     "hashType": "sha256"

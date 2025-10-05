@@ -40,8 +40,8 @@ services:
     ports:
       - "3001:3001"
     volumes:
-      - ./backend:/app
-      - /app/node_modules
+      - backend_uploads:/app/uploads
+      - backend_logs:/app/logs
     networks:
       - app-network
 
@@ -75,6 +75,8 @@ services:
 
 volumes:
   postgres_data:
+  backend_uploads:
+  backend_logs:
 
 networks:
   app-network:
