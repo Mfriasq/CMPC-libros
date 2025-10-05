@@ -11,6 +11,8 @@ import { AuthModule } from "./auth/auth.module";
 import { EstadosModule } from "./estados/estados.module";
 import { LoggingModule } from "./logging/logging.module";
 import { LoggingInterceptor } from "./logging/logging.interceptor";
+import { AuditInterceptor } from "./logging/audit.interceptor";
+import { ResponseTransformInterceptor } from "./logging/response-transform.interceptor";
 import { RequestLoggingMiddleware } from "./logging/request-logging.middleware";
 import { GlobalExceptionFilter } from "./logging/global-exception.filter";
 import { User } from "./users/user.model";
@@ -48,6 +50,14 @@ import { Estado } from "./estados/estado.model";
     {
       provide: APP_INTERCEPTOR,
       useClass: LoggingInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuditInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: ResponseTransformInterceptor,
     },
     {
       provide: APP_FILTER,

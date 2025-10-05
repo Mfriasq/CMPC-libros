@@ -85,44 +85,8 @@ export class LibrosController {
     @Body() createLibroDto: CreateLibroDto,
     @Request() req: any
   ): Promise<Libro> {
-    try {
-      const libro = await this.librosService.create(createLibroDto);
-
-      // Log de auditoría para creación exitosa
-      this.loggingService.auditBookManagement(
-        "CREATE_BOOK_SUCCESS",
-        req.user.id,
-        req.user.email,
-        req.user.role,
-        libro.id,
-        true,
-        {
-          bookTitle: libro.titulo,
-          bookAuthor: libro.autor,
-          bookGenre: libro.generoId,
-        },
-        req
-      );
-
-      return libro;
-    } catch (error) {
-      // Log de auditoría para error en creación
-      this.loggingService.auditBookManagement(
-        "CREATE_BOOK_FAILURE",
-        req.user.id,
-        req.user.email,
-        req.user.role,
-        undefined,
-        false,
-        {
-          bookData: createLibroDto,
-          error: error.message,
-        },
-        req
-      );
-
-      throw error;
-    }
+    // El AuditInterceptor se encarga automáticamente del logging de auditoría
+    return await this.librosService.create(createLibroDto);
   }
 
   @Get()
@@ -306,58 +270,23 @@ export class LibrosController {
     @Body() updateLibroDto: UpdateLibroDto,
     @Request() req: any
   ): Promise<Libro> {
-    try {
-      // Obtener datos anteriores para auditoría
-      const oldBook = await this.librosService.findOne(id);
+    // Obtener datos anteriores para log de cambios
+    const oldBook = await this.librosService.findOne(id);
+    const updatedBook = await this.librosService.update(id, updateLibroDto);
 
-      const updatedBook = await this.librosService.update(id, updateLibroDto);
+    // Log de cambios para auditoría (mantenemos este específico)
+    this.loggingService.logDataChange(
+      "UPDATE",
+      "Book",
+      id,
+      oldBook,
+      updatedBook,
+      req.user.id,
+      req.user.email,
+      req
+    );
 
-      // Log de cambios para auditoría
-      this.loggingService.logDataChange(
-        "UPDATE",
-        "Book",
-        id,
-        oldBook,
-        updatedBook,
-        req.user.id,
-        req.user.email,
-        req
-      );
-
-      // Log de auditoría para actualización exitosa
-      this.loggingService.auditBookManagement(
-        "UPDATE_BOOK_SUCCESS",
-        req.user.id,
-        req.user.email,
-        req.user.role,
-        id,
-        true,
-        {
-          bookTitle: updatedBook.titulo,
-          changes: updateLibroDto,
-        },
-        req
-      );
-
-      return updatedBook;
-    } catch (error) {
-      // Log de auditoría para error en actualización
-      this.loggingService.auditBookManagement(
-        "UPDATE_BOOK_FAILURE",
-        req.user.id,
-        req.user.email,
-        req.user.role,
-        id,
-        false,
-        {
-          updateData: updateLibroDto,
-          error: error.message,
-        },
-        req
-      );
-
-      throw error;
-    }
+    return updatedBook;
   }
 
   @Delete(":id")
@@ -397,44 +326,8 @@ export class LibrosController {
     @Param("id", ParseIntPipe) id: number,
     @Request() req: any
   ): Promise<void> {
-    try {
-      // Obtener datos del libro antes de eliminarlo para auditoría
-      const bookToDelete = await this.librosService.findOne(id);
-
-      await this.librosService.eliminar(id);
-
-      // Log de auditoría para eliminación exitosa
-      this.loggingService.auditBookManagement(
-        "DELETE_BOOK_SUCCESS",
-        req.user.id,
-        req.user.email,
-        req.user.role,
-        id,
-        true,
-        {
-          bookTitle: bookToDelete.titulo,
-          bookAuthor: bookToDelete.autor,
-          deletionType: "soft_delete",
-        },
-        req
-      );
-    } catch (error) {
-      // Log de auditoría para error en eliminación
-      this.loggingService.auditBookManagement(
-        "DELETE_BOOK_FAILURE",
-        req.user.id,
-        req.user.email,
-        req.user.role,
-        id,
-        false,
-        {
-          error: error.message,
-        },
-        req
-      );
-
-      throw error;
-    }
+    // El AuditInterceptor se encarga automáticamente del logging de auditoría
+    await this.librosService.eliminar(id);
   }
 
   @Patch("restore/:id")

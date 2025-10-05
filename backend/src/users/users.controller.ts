@@ -23,6 +23,8 @@ import { User, UserRole } from "./user.model";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { RolesGuard } from "../auth/roles.guard";
 import { Roles } from "../auth/decorators/roles.decorator";
+import { ErrorHelper } from "../logging/custom-errors";
+import { ResponseHelper } from "../logging/response-transform.interceptor";
 
 @ApiTags("Gestión de Usuarios")
 @Controller("users")
