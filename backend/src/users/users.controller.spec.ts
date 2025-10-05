@@ -65,8 +65,9 @@ describe("UsersController", () => {
     it("should create a new user", async () => {
       const createUserDto: CreateUserDto = {
         name: "New User",
-        email: "newuser@example.com",
-        password: "password123",
+        email: "newuser@biblioteca.com",
+        password: "Password123!",
+        confirmPassword: "Password123!",
         role: UserRole.USER,
         age: 25,
       };
@@ -82,8 +83,9 @@ describe("UsersController", () => {
     it("should throw ConflictException if user already exists", async () => {
       const createUserDto: CreateUserDto = {
         name: "Existing User",
-        email: "existing@example.com",
-        password: "password123",
+        email: "existing@biblioteca.com",
+        password: "Password123!",
+        confirmPassword: "Password123!",
         role: UserRole.USER,
         age: 25,
       };

@@ -13,7 +13,14 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 }) => {
   const { isAuthenticated, user, loading } = useAuth();
 
+  console.log("🛡️ ProtectedRoute state:", {
+    isAuthenticated,
+    user: user?.email,
+    loading,
+  });
+
   if (loading) {
+    console.log("⏳ Mostrando loading...");
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -25,6 +32,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   if (!isAuthenticated) {
+    console.log("❌ No autenticado, redirigiendo a /login");
     return <Navigate to="/login" replace />;
   }
 

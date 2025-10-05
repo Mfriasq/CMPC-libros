@@ -16,7 +16,15 @@ import {
   ApiBearerAuth,
 } from "@nestjs/swagger";
 import { AuthService } from "./auth.service";
-import { LoginDto, AuthResponseDto } from "./dto/auth.dto";
+import {
+  LoginDto,
+  AuthResponseDto,
+  LoginErrorResponseDto,
+  ValidationErrorResponseDto,
+  UserProfileResponseDto,
+  LogoutResponseDto,
+  UnauthorizedResponseDto,
+} from "./dto/auth.dto";
 import { JwtAuthGuard } from "./jwt-auth.guard";
 import { User } from "../users/user.model";
 import { LoggingService } from "../logging/logging.service";
@@ -39,14 +47,46 @@ export class AuthController {
     status: 200,
     description: "Login exitoso.",
     type: AuthResponseDto,
+    schema: {
+      example: {
+        access_token:
+          "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImVtYWlsIjoiYWRtaW5AYmlibGlvdGVjYS5jb20iLCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE2OTc0NTYyNzAsImV4cCI6MTY5NzQ1OTg3MH0.aBcDeFgHiJkLmNoPqRsTuVwXyZ",
+        user: {
+          id: 1,
+          email: "admin@biblioteca.com",
+          name: "Administrador",
+          age: 30,
+          role: "admin",
+        },
+      },
+    },
   })
   @ApiResponse({
     status: 401,
     description: "Credenciales inválidas.",
+    type: LoginErrorResponseDto,
+    schema: {
+      example: {
+        message: "Credenciales inválidas",
+        statusCode: 401,
+        error: "Unauthorized",
+      },
+    },
   })
   @ApiResponse({
     status: 400,
     description: "Datos de entrada inválidos.",
+    type: ValidationErrorResponseDto,
+    schema: {
+      example: {
+        message: [
+          "El email es requerido para iniciar sesión",
+          "El formato del email no es válido",
+        ],
+        statusCode: 400,
+        error: "Bad Request",
+      },
+    },
   })
   async login(
     @Body() loginDto: LoginDto,
@@ -101,14 +141,37 @@ export class AuthController {
   @Get("profile")
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: "Obtener perfil del usuario autenticado" })
+  @ApiOperation({
+    summary: "Obtener perfil del usuario autenticado",
+    description:
+      "Devuelve la información completa del perfil del usuario autenticado, excluyendo datos sensibles como la contraseña",
+  })
   @ApiResponse({
     status: 200,
-    description: "Perfil del usuario.",
+    description: "Perfil del usuario obtenido exitosamente.",
+    type: UserProfileResponseDto,
+    schema: {
+      example: {
+        id: 1,
+        email: "admin@biblioteca.com",
+        name: "Administrador",
+        age: 30,
+        role: "admin",
+        createdAt: "2025-10-01T10:00:00.000Z",
+        updatedAt: "2025-10-01T10:00:00.000Z",
+      },
+    },
   })
   @ApiResponse({
     status: 401,
-    description: "No autorizado - Token requerido.",
+    description: "No autorizado - Token requerido o inválido.",
+    type: UnauthorizedResponseDto,
+    schema: {
+      example: {
+        message: "Unauthorized",
+        statusCode: 401,
+      },
+    },
   })
   async getProfile(@Request() req): Promise<Omit<User, "password">> {
     const user = req.user;
@@ -121,28 +184,32 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: "Cerrar sesión del usuario autenticado" })
+  @ApiOperation({
+    summary: "Cerrar sesión del usuario autenticado",
+    description:
+      "Cierra la sesión del usuario autenticado. En implementaciones JWT stateless, el cliente debe eliminar el token localmente.",
+  })
   @ApiResponse({
     status: 200,
     description: "Sesión cerrada exitosamente.",
+    type: LogoutResponseDto,
     schema: {
-      type: "object",
-      properties: {
-        message: {
-          type: "string",
-          example: "Sesión cerrada exitosamente",
-        },
-        timestamp: {
-          type: "string",
-          format: "date-time",
-          example: "2025-10-02T13:45:30.123Z",
-        },
+      example: {
+        message: "Sesión cerrada exitosamente",
+        timestamp: "2025-10-02T13:45:30.123Z",
       },
     },
   })
   @ApiResponse({
     status: 401,
-    description: "No autorizado - Token requerido.",
+    description: "No autorizado - Token requerido o inválido.",
+    type: UnauthorizedResponseDto,
+    schema: {
+      example: {
+        message: "Unauthorized",
+        statusCode: 401,
+      },
+    },
   })
   async logout(
     @Request() req

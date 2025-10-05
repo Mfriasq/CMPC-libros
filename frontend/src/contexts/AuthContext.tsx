@@ -49,12 +49,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const login = (token: string, userData: AuthUser): void => {
+    console.log("🔄 AuthContext.login llamado con:", {
+      token: token.substring(0, 20) + "...",
+      userData,
+    });
     localStorage.setItem("token", token);
+    localStorage.setItem("user", JSON.stringify(userData));
     setUser(userData);
+    console.log("✅ Estado actualizado, usuario:", userData);
   };
 
   const logout = (): void => {
     localStorage.removeItem("token");
+    localStorage.removeItem("user");
     setUser(null);
   };
 

@@ -31,10 +31,19 @@ const Login: React.FC = () => {
     setError("");
 
     try {
+      console.log("🔐 Iniciando login...");
       const response = await authService.login({ email, password });
-      login(response.access_token, response.user);
+      console.log("✅ Respuesta del backend:", response);
+
+      // El backend devuelve los datos en response.data
+      const { access_token, user } = response.data;
+      login(access_token, user);
+      console.log("✅ Login actualizado en contexto");
+
+      console.log("🚀 Navegando a /libros...");
       navigate("/libros");
     } catch (error) {
+      console.error("❌ Error en login:", error);
       setError("Credenciales inválidas");
     } finally {
       setLoading(false);

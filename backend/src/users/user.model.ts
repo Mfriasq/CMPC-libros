@@ -82,6 +82,20 @@ export class User extends Model<User> {
   @ApiProperty({ description: "Estado del usuario" })
   estado: Estado;
 
+  @Column({
+    type: DataType.DATE,
+    allowNull: true,
+  })
+  @ApiProperty({ description: "Fecha de restauración", required: false })
+  restoredAt?: Date;
+
+  @Column({
+    type: DataType.DATE,
+    allowNull: true,
+  })
+  @ApiProperty({ description: "Fecha de eliminación lógica", required: false })
+  deletedAt?: Date;
+
   @CreatedAt
   @ApiProperty({ description: "Fecha de creación" })
   createdAt: Date;

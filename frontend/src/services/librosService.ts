@@ -14,8 +14,8 @@ export interface Libro {
     id: number;
     nombre: string;
   };
-  fechaEliminacion: Date;
-  fechaRestauracion: Date;
+  restoredAt?: Date;
+  deletedAt?: Date;
   disponibilidad: number;
   createdAt: Date;
   updatedAt: Date;
@@ -54,10 +54,13 @@ export interface SearchFilters {
 
 export interface PaginatedResponse<T> {
   data: T[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+  };
 }
 
 export interface LibrosSearchParams {
@@ -98,15 +101,20 @@ export const librosService = {
     page: number = 1,
     limit: number = 10
   ): Promise<PaginatedResponse<Libro>> {
-    const response: AxiosResponse<PaginatedResponse<Libro>> =
-      await axiosInstance.get(`/libros?page=${page}&limit=${limit}`);
-    return response.data;
+    const response: AxiosResponse<any> = await axiosInstance.get(
+      `/libros?page=${page}&limit=${limit}`
+    );
+    return {
+      data: response.data.data,
+      meta: response.data.meta,
+    };
   },
 
   // Obtener todos los libros sin paginación (para compatibilidad)
   async getAllLibrosSinPaginacion(): Promise<Libro[]> {
-    const response: AxiosResponse<PaginatedResponse<Libro>> =
-      await axiosInstance.get("/libros?page=1&limit=1000");
+    const response: AxiosResponse<any> = await axiosInstance.get(
+      "/libros?page=1&limit=1000"
+    );
     return response.data.data;
   },
 
@@ -125,35 +133,39 @@ export const librosService = {
     if (filters.page) params.append("page", filters.page.toString());
     if (filters.limit) params.append("limit", filters.limit.toString());
 
-    const response: AxiosResponse<PaginatedResponse<Libro>> =
-      await axiosInstance.get(`/libros/search?${params.toString()}`);
-    return response.data;
+    const response: AxiosResponse<any> = await axiosInstance.get(
+      `/libros/search?${params.toString()}`
+    );
+    return {
+      data: response.data.data,
+      meta: response.data.meta,
+    };
   },
 
   // Obtener libro por ID
   async getLibroById(id: number): Promise<Libro> {
-    const response: AxiosResponse<Libro> = await axiosInstance.get(
+    const response: AxiosResponse<any> = await axiosInstance.get(
       `/libros/${id}`
     );
-    return response.data;
+    return response.data.data;
   },
 
   // Crear nuevo libro
   async createLibro(libro: CreateLibroDto): Promise<Libro> {
-    const response: AxiosResponse<Libro> = await axiosInstance.post(
+    const response: AxiosResponse<any> = await axiosInstance.post(
       "/libros",
       libro
     );
-    return response.data;
+    return response.data.data;
   },
 
   // Actualizar libro
   async updateLibro(id: number, libro: UpdateLibroDto): Promise<Libro> {
-    const response: AxiosResponse<Libro> = await axiosInstance.patch(
+    const response: AxiosResponse<any> = await axiosInstance.patch(
       `/libros/${id}`,
       libro
     );
-    return response.data;
+    return response.data.data;
   },
 
   // Eliminar libro (soft delete)
@@ -163,10 +175,10 @@ export const librosService = {
 
   // Restaurar libro eliminado
   async restoreLibro(id: number): Promise<Libro> {
-    const response: AxiosResponse<Libro> = await axiosInstance.patch(
+    const response: AxiosResponse<any> = await axiosInstance.patch(
       `/libros/restore/${id}`
     );
-    return response.data;
+    return response.data.data;
   },
 
   // Subir imagen para un libro
@@ -177,13 +189,16 @@ export const librosService = {
     const formData = new FormData();
     formData.append("imagen", imageFile);
 
-    const response: AxiosResponse<{ message: string; imagenUrl: string }> =
-      await axiosInstance.post(`/libros/${id}/imagen`, formData, {
+    const response: AxiosResponse<any> = await axiosInstance.post(
+      `/libros/${id}/imagen`,
+      formData,
+      {
         headers: {
           "Content-Type": "multipart/form-data",
         },
-      });
-    return response.data;
+      }
+    );
+    return response.data.data;
   },
 
   // Exportar libros a CSV

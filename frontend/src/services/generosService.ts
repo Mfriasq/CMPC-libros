@@ -37,7 +37,8 @@ class GenerosService {
       const response = await axios.get(`${API_BASE_URL}/generos`, {
         headers: this.getAuthHeader(),
       });
-      return response.data;
+
+      return response.data.data;
     } catch (error) {
       console.error("Error fetching generos:", error);
       throw error;
@@ -49,7 +50,7 @@ class GenerosService {
       const response = await axios.get(`${API_BASE_URL}/generos/${id}`, {
         headers: this.getAuthHeader(),
       });
-      return response.data;
+      return response.data.data;
     } catch (error) {
       console.error("Error fetching genero:", error);
       throw error;
@@ -61,7 +62,7 @@ class GenerosService {
       const response = await axios.post(`${API_BASE_URL}/generos`, generoData, {
         headers: this.getAuthHeader(),
       });
-      return response.data;
+      return response.data.data;
     } catch (error) {
       console.error("Error creating genero:", error);
       throw error;
@@ -77,7 +78,7 @@ class GenerosService {
           headers: this.getAuthHeader(),
         }
       );
-      return response.data;
+      return response.data.data;
     } catch (error) {
       console.error("Error updating genero:", error);
       throw error;

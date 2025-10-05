@@ -12,6 +12,8 @@ export interface User {
     id: number;
     nombre: string;
   };
+  restoredAt?: Date;
+  deletedAt?: Date;
   createdAt: string;
   updatedAt: string;
 }
@@ -20,7 +22,9 @@ export interface CreateUserDto {
   name: string;
   email: string;
   password: string;
+  confirmPassword: string;
   role: UserRole;
+  age?: number;
 }
 
 export interface UpdateUserDto {
@@ -28,6 +32,7 @@ export interface UpdateUserDto {
   email?: string;
   password?: string;
   role?: UserRole;
+  age?: number;
 }
 
 class UsersService {
@@ -46,7 +51,7 @@ class UsersService {
         `${API_BASE_URL}/users`,
         this.getAuthHeaders()
       );
-      return response.data;
+      return response.data.data;
     } catch (error) {
       console.error("Error al obtener usuarios:", error);
       throw error;
@@ -59,7 +64,7 @@ class UsersService {
         `${API_BASE_URL}/users/${id}`,
         this.getAuthHeaders()
       );
-      return response.data;
+      return response.data.data;
     } catch (error) {
       console.error("Error al obtener usuario:", error);
       throw error;
@@ -73,7 +78,7 @@ class UsersService {
         userData,
         this.getAuthHeaders()
       );
-      return response.data;
+      return response.data.data;
     } catch (error: any) {
       console.error("Error al crear usuario:", error);
       // Extraer el mensaje del servidor si está disponible
@@ -94,7 +99,7 @@ class UsersService {
         userData,
         this.getAuthHeaders()
       );
-      return response.data;
+      return response.data.data;
     } catch (error: any) {
       console.error("Error al actualizar usuario:", error);
       // Extraer el mensaje del servidor si está disponible
@@ -131,7 +136,7 @@ class UsersService {
         {},
         this.getAuthHeaders()
       );
-      return response.data;
+      return response.data.data;
     } catch (error: any) {
       console.error("Error al restaurar usuario:", error);
       // Extraer el mensaje del servidor si está disponible
@@ -151,7 +156,7 @@ class UsersService {
         `${API_BASE_URL}/users/search/${encodeURIComponent(query)}`,
         this.getAuthHeaders()
       );
-      return response.data;
+      return response.data.data;
     } catch (error) {
       console.error("Error en la búsqueda de usuarios:", error);
       throw error;

@@ -183,13 +183,33 @@ export class AuditInterceptor implements NestInterceptor {
   private extractBookMetadata(result: any, request: any): any {
     if (!result) return {};
 
-    return {
-      bookTitle: result.titulo,
-      bookAuthor: result.autor,
-      bookGenre: result.generoId,
-      ...(request.method === "PUT" && { changes: request.body }),
-      ...(request.method === "DELETE" && { deletionType: "soft_delete" }),
-    };
+    // Extraer solo propiedades primitivas para evitar referencias circulares
+    const safeMetadata: any = {};
+
+    if (result.titulo) safeMetadata.bookTitle = result.titulo;
+    if (result.autor) safeMetadata.bookAuthor = result.autor;
+    if (result.generoId) safeMetadata.bookGenre = result.generoId;
+    if (result.precio) safeMetadata.bookPrice = result.precio;
+    if (result.disponibilidad !== undefined)
+      safeMetadata.bookAvailability = result.disponibilidad;
+
+    if (request.method === "PUT" || request.method === "PATCH") {
+      // Copiar solo propiedades primitivas del body
+      const safeChanges: any = {};
+      Object.keys(request.body || {}).forEach((key) => {
+        const value = request.body[key];
+        if (typeof value !== "object" || value === null) {
+          safeChanges[key] = value;
+        }
+      });
+      safeMetadata.requestData = safeChanges;
+    }
+
+    if (request.method === "DELETE") {
+      safeMetadata.deletionType = "soft_delete";
+    }
+
+    return safeMetadata;
   }
 
   private extractUserMetadata(

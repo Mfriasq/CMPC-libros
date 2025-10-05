@@ -1,11 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import {
-  librosService,
-  Libro,
-  CreateLibroDto,
-} from "../services/librosService";
+import { librosService, Libro } from "../services/librosService";
 import { generosService, Genero } from "../services/generosService";
 import { SelectChangeEvent } from "@mui/material";
 import {
@@ -31,6 +27,8 @@ import {
   Pagination,
 } from "@mui/material";
 import { LibroCard } from "../components";
+import { LibroForm } from "../components/LibroForm";
+import { LibroFormData } from "../schemas/libroSchema";
 import {
   Add as AddIcon,
   Search as SearchIcon,
@@ -60,16 +58,6 @@ const Libros: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalBooks, setTotalBooks] = useState(0);
   const [booksPerPage] = useState(12); // 12 libros por página
-  const [formData, setFormData] = useState<CreateLibroDto>({
-    titulo: "",
-    editorial: "",
-    autor: "",
-    precio: 0,
-    generoId: 0,
-    disponibilidad: 1,
-  });
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string>("");
 
   // Estado para debounce
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(
@@ -119,9 +107,9 @@ const Libros: React.FC = () => {
         setLoading(true);
         const response = await librosService.getAllLibros(page, booksPerPage);
         setLibros(response.data);
-        setTotalPages(response.totalPages);
-        setTotalBooks(response.total);
-        setCurrentPage(response.page);
+        setTotalPages(Math.ceil(response.meta.total / response.meta.limit));
+        setTotalBooks(response.meta.total);
+        setCurrentPage(response.meta.page);
 
         // Restaurar posición del scroll después del re-render
         if (preserveScroll && scrollPosition > 0) {
@@ -157,14 +145,14 @@ const Libros: React.FC = () => {
               genreFilter && genreFilter !== ""
                 ? Number(genreFilter)
                 : undefined,
-            estado: statusFilter || undefined,
+            ...(canManageBooks() && { estado: statusFilter || undefined }),
             page: 1,
             limit: booksPerPage,
           };
           const response = await librosService.searchLibros(filters);
           setLibros(response.data);
-          setTotalPages(response.totalPages);
-          setTotalBooks(response.total);
+          setTotalPages(Math.ceil(response.meta.total / response.meta.limit));
+          setTotalBooks(response.meta.total);
           setCurrentPage(1);
         } catch (error) {
           toast.error("Error en la búsqueda");
@@ -187,6 +175,7 @@ const Libros: React.FC = () => {
     booksPerPage,
     searchTimeout,
     loadLibros,
+    canManageBooks,
   ]);
 
   const handleSearch = async () => {
@@ -198,15 +187,15 @@ const Libros: React.FC = () => {
         editorial: editorialFilter || undefined,
         generoId:
           genreFilter && genreFilter !== "" ? Number(genreFilter) : undefined,
-        estado: statusFilter || undefined,
+        ...(canManageBooks() && { estado: statusFilter || undefined }),
         page: 1,
         limit: booksPerPage,
       };
       const response = await librosService.searchLibros(filters);
       setLibros(response.data);
-      setTotalPages(response.totalPages);
-      setTotalBooks(response.total);
-      setCurrentPage(response.page);
+      setTotalPages(Math.ceil(response.meta.total / response.meta.limit));
+      setTotalBooks(response.meta.total);
+      setCurrentPage(response.meta.page);
     } catch (error) {
       toast.error("Error en la búsqueda");
     } finally {
@@ -232,7 +221,7 @@ const Libros: React.FC = () => {
         editorial: editorialFilter || undefined,
         generoId:
           genreFilter && genreFilter !== "" ? Number(genreFilter) : undefined,
-        estado: statusFilter || undefined,
+        ...(canManageBooks() && { estado: statusFilter || undefined }),
       };
       await librosService.exportToCsv(filters);
       toast.success("Archivo CSV descargado exitosamente");
@@ -251,27 +240,24 @@ const Libros: React.FC = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const handleSubmit = async (e?: React.FormEvent) => {
-    if (e) {
-      e.preventDefault();
-    }
+  const handleFormSubmit = async (data: LibroFormData, image?: File) => {
     try {
       let libroId: number;
 
       if (editingLibro) {
-        await librosService.updateLibro(editingLibro.id, formData);
+        await librosService.updateLibro(editingLibro.id, data);
         libroId = editingLibro.id;
         toast.success("Libro actualizado correctamente");
       } else {
-        const newLibro = await librosService.createLibro(formData);
+        const newLibro = await librosService.createLibro(data);
         libroId = newLibro.id;
         toast.success("Libro creado correctamente");
       }
 
       // Si hay una imagen seleccionada, subirla
-      if (selectedImage && libroId) {
+      if (image && libroId) {
         try {
-          await librosService.uploadImage(libroId, selectedImage);
+          await librosService.uploadImage(libroId, image);
           toast.success("Imagen subida correctamente");
         } catch (imageError) {
           toast.warn("Libro guardado, pero error al subir la imagen");
@@ -291,17 +277,6 @@ const Libros: React.FC = () => {
 
   const handleEdit = (libro: Libro) => {
     setEditingLibro(libro);
-    setFormData({
-      titulo: libro.titulo,
-      editorial: libro.editorial,
-      autor: libro.autor,
-      precio: libro.precio,
-      generoId: libro.generoId,
-      disponibilidad: libro.disponibilidad,
-    });
-    // Limpiar campos de imagen al editar (se mostrará la imagen actual si existe)
-    setSelectedImage(null);
-    setImagePreview("");
     setDialogOpen(true);
   };
 
@@ -340,47 +315,6 @@ const Libros: React.FC = () => {
   const handleCloseDialog = () => {
     setDialogOpen(false);
     setEditingLibro(null);
-    setFormData({
-      titulo: "",
-      editorial: "",
-      autor: "",
-      precio: 0,
-      generoId: 0,
-      disponibilidad: 1,
-    });
-    setSelectedImage(null);
-    setImagePreview("");
-  };
-
-  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      // Validar tipo de archivo
-      if (!file.type.startsWith("image/")) {
-        toast.error("Por favor selecciona un archivo de imagen válido");
-        return;
-      }
-
-      // Validar tamaño (máximo 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error("El archivo es demasiado grande. Máximo 5MB");
-        return;
-      }
-
-      setSelectedImage(file);
-
-      // Crear preview
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreview(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const removeImage = () => {
-    setSelectedImage(null);
-    setImagePreview("");
   };
 
   return (
@@ -472,23 +406,25 @@ const Libros: React.FC = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={1}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Estado</InputLabel>
-                <Select
-                  value={statusFilter}
-                  label="Estado"
-                  onChange={(e: SelectChangeEvent) =>
-                    setStatusFilter(e.target.value)
-                  }
-                >
-                  <MenuItem value="">Todos</MenuItem>
-                  <MenuItem value="activo">Activo</MenuItem>
-                  <MenuItem value="eliminado">Eliminado</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={3}>
+            {canManageBooks() && (
+              <Grid item xs={12} sm={1}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Estado</InputLabel>
+                  <Select
+                    value={statusFilter}
+                    label="Estado"
+                    onChange={(e: SelectChangeEvent) =>
+                      setStatusFilter(e.target.value)
+                    }
+                  >
+                    <MenuItem value="">Todos</MenuItem>
+                    <MenuItem value="activo">Activo</MenuItem>
+                    <MenuItem value="eliminado">Eliminado</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+            )}
+            <Grid item xs={12} sm={canManageBooks() ? 3 : 4}>
               <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
                 <Button
                   variant="contained"
@@ -608,213 +544,30 @@ const Libros: React.FC = () => {
           <DialogTitle>
             {editingLibro ? "Editar Libro" : "Agregar Nuevo Libro"}
           </DialogTitle>
-          <form onSubmit={handleSubmit}>
-            <DialogContent>
-              <Grid container spacing={2} sx={{ mt: 1 }}>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Título"
-                    value={formData.titulo}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      setFormData({ ...formData, titulo: e.target.value })
+          <DialogContent>
+            <LibroForm
+              initialData={
+                editingLibro
+                  ? {
+                      titulo: editingLibro.titulo,
+                      autor: editingLibro.autor,
+                      editorial: editingLibro.editorial,
+                      precio: editingLibro.precio,
+                      disponibilidad: editingLibro.disponibilidad,
+                      generoId: editingLibro.generoId,
+                      imagenUrl: editingLibro.imagenUrl,
                     }
-                    required
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Editorial"
-                    value={formData.editorial}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      setFormData({ ...formData, editorial: e.target.value })
-                    }
-                    required
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Autor"
-                    value={formData.autor}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      setFormData({ ...formData, autor: e.target.value })
-                    }
-                    required
-                  />
-                </Grid>
-
-                <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth required>
-                    <InputLabel>Género</InputLabel>
-                    <Select
-                      value={formData.generoId.toString()}
-                      label="Género"
-                      onChange={(e: SelectChangeEvent) =>
-                        setFormData({
-                          ...formData,
-                          generoId: Number(e.target.value),
-                        })
-                      }
-                    >
-                      {generos.map((genero) => (
-                        <MenuItem key={genero.id} value={genero.id}>
-                          {genero.nombre}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
-
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Cantidad Disponible"
-                    type="number"
-                    value={formData.disponibilidad}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      setFormData({
-                        ...formData,
-                        disponibilidad: parseInt(e.target.value) || 0,
-                      })
-                    }
-                    inputProps={{ min: 0 }}
-                    required
-                  />
-                </Grid>
-
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Precio (CLP)"
-                    type="number"
-                    value={formData.precio || ""}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      setFormData({
-                        ...formData,
-                        precio: parseInt(e.target.value) || 0,
-                      })
-                    }
-                    inputProps={{
-                      min: 0,
-                      step: 1,
-                    }}
-                    InputProps={{
-                      startAdornment: (
-                        <span style={{ marginRight: "8px" }}>$</span>
-                      ),
-                    }}
-                    placeholder="Ej: 15990"
-                  />
-                </Grid>
-
-                {/* Campo de imagen */}
-                <Grid item xs={12}>
-                  <Box sx={{ mt: 2 }}>
-                    <Typography variant="subtitle2" gutterBottom>
-                      Imagen del Libro (Opcional)
-                    </Typography>
-                    <Button
-                      variant="outlined"
-                      component="label"
-                      startIcon={<AddIcon />}
-                      sx={{ mb: 2 }}
-                    >
-                      Seleccionar Imagen
-                      <input
-                        type="file"
-                        hidden
-                        accept="image/*"
-                        onChange={handleImageChange}
-                      />
-                    </Button>
-
-                    {imagePreview && (
-                      <Box
-                        sx={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 2,
-                          mt: 2,
-                        }}
-                      >
-                        <Box
-                          component="img"
-                          src={imagePreview}
-                          alt="Vista previa"
-                          sx={{
-                            width: 100,
-                            height: 100,
-                            objectFit: "cover",
-                            borderRadius: 1,
-                            border: "1px solid #ddd",
-                          }}
-                        />
-                        <Button
-                          variant="outlined"
-                          color="error"
-                          startIcon={<ClearIcon />}
-                          onClick={removeImage}
-                          size="small"
-                        >
-                          Quitar Imagen
-                        </Button>
-                      </Box>
-                    )}
-
-                    {editingLibro &&
-                      editingLibro.imagenUrl &&
-                      !imagePreview && (
-                        <Box
-                          sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 2,
-                            mt: 2,
-                          }}
-                        >
-                          <Box
-                            component="img"
-                            src={`http://localhost:3001${editingLibro.imagenUrl}`}
-                            alt="Imagen actual"
-                            sx={{
-                              width: 100,
-                              height: 100,
-                              objectFit: "cover",
-                              borderRadius: 1,
-                              border: "1px solid #ddd",
-                            }}
-                          />
-                          <Typography variant="body2" color="text.secondary">
-                            Imagen actual
-                          </Typography>
-                        </Box>
-                      )}
-                  </Box>
-                </Grid>
-              </Grid>
-            </DialogContent>
-            <DialogActions>
-              <Button type="button" onClick={handleCloseDialog}>
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                variant="contained"
-                disabled={
-                  !formData.titulo ||
-                  !formData.autor ||
-                  !formData.editorial ||
-                  !formData.generoId ||
-                  !formData.precio ||
-                  formData.generoId === 0
-                }
-              >
-                {editingLibro ? "Actualizar" : "Crear"}
-              </Button>
-            </DialogActions>
-          </form>
+                  : undefined
+              }
+              generos={generos}
+              onSubmit={handleFormSubmit}
+              submitLabel={editingLibro ? "Actualizar" : "Crear"}
+              existingImageUrl={editingLibro?.imagenUrl}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseDialog}>Cancelar</Button>
+          </DialogActions>
         </Dialog>
       </Container>
     </>

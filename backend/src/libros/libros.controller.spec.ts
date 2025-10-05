@@ -129,10 +129,14 @@ describe("LibrosController", () => {
 
       mockLibrosService.findAll.mockResolvedValue(paginatedResponse);
 
-      const result = await controller.findAll(1, 10);
+      const mockRequest = {
+        user: { role: "user" },
+      };
+
+      const result = await controller.findAll(1, 10, mockRequest);
 
       expect(result).toEqual(paginatedResponse);
-      expect(service.findAll).toHaveBeenCalledWith(1, 10);
+      expect(service.findAll).toHaveBeenCalledWith(1, 10, "user");
     });
   });
 
@@ -210,7 +214,12 @@ describe("LibrosController", () => {
 
       mockLibrosService.search.mockResolvedValue(searchResponse);
 
+      const mockRequest = {
+        user: { role: "librarian" },
+      };
+
       const result = await controller.search(
+        mockRequest,
         "Test",
         "Author",
         "Editorial",
@@ -230,7 +239,8 @@ describe("LibrosController", () => {
           estado: "activo",
         },
         1,
-        10
+        10,
+        "librarian"
       );
     });
   });
@@ -271,6 +281,9 @@ describe("LibrosController", () => {
   describe("exportToCsv", () => {
     it("should export libros to CSV", async () => {
       const csvContent = "ID,Título,Autor\n1,Test Book,Test Author\n";
+      const mockRequest = {
+        user: { role: "admin" },
+      };
       const mockResponse = {
         send: jest.fn(),
       } as unknown as Response;
@@ -278,6 +291,7 @@ describe("LibrosController", () => {
       mockLibrosService.exportToCsv.mockResolvedValue(csvContent);
 
       await controller.exportToCsv(
+        mockRequest,
         mockResponse,
         "Test",
         "Author",
@@ -286,13 +300,16 @@ describe("LibrosController", () => {
         "activo"
       );
 
-      expect(service.exportToCsv).toHaveBeenCalledWith({
-        titulo: "Test",
-        autor: "Author",
-        editorial: "Editorial",
-        generoId: 1,
-        estado: "activo",
-      });
+      expect(service.exportToCsv).toHaveBeenCalledWith(
+        {
+          titulo: "Test",
+          autor: "Author",
+          editorial: "Editorial",
+          generoId: 1,
+          estado: "activo",
+        },
+        "admin"
+      );
       expect(mockResponse.send).toHaveBeenCalledWith(csvContent);
     });
   });

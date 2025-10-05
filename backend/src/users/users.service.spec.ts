@@ -72,8 +72,9 @@ describe("UsersService", () => {
   describe("create", () => {
     const createUserDto: CreateUserDto = {
       name: "New User",
-      email: "newuser@example.com",
-      password: "password123",
+      email: "newuser@biblioteca.com",
+      password: "Password123!",
+      confirmPassword: "Password123!",
       role: UserRole.USER,
       age: 25,
     };

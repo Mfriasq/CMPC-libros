@@ -11,8 +11,16 @@ export interface AuthUser {
 }
 
 export interface LoginResponse {
-  access_token: string;
-  user: AuthUser;
+  success: boolean;
+  statusCode: number;
+  timestamp: string;
+  path: string;
+  method: string;
+  message: string;
+  data: {
+    access_token: string;
+    user: AuthUser;
+  };
 }
 
 export interface LoginCredentials {
@@ -64,7 +72,7 @@ export const authService = {
       credentials
     );
 
-    const { access_token, user } = response.data;
+    const { access_token, user } = response.data.data;
 
     // Guardar token y datos del usuario
     localStorage.setItem("token", access_token);

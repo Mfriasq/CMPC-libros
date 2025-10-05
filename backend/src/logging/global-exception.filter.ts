@@ -188,9 +188,13 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
   private formatValidationErrors(validationErrors: ValidationError[]): any {
     const formatError = (error: ValidationError): any => {
+      // Lista de campos sensibles que no deben mostrar sus valores
+      const sensitiveFields = ['password', 'confirmPassword', 'currentPassword', 'newPassword'];
+      const isSensitive = sensitiveFields.includes(error.property);
+
       const result: any = {
         property: error.property,
-        value: error.value,
+        value: isSensitive ? '[REDACTED]' : error.value,
         constraints: error.constraints || {},
       };
 

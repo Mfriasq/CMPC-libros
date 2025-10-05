@@ -17,16 +17,58 @@ export class GenerosService {
     private estadosService: EstadosService
   ) {}
 
-  async findAll(): Promise<Genero[]> {
-    return this.generoModel.findAll({
-      include: [
-        {
-          model: Estado,
-          as: "estado",
-        },
-      ],
-      order: [["nombre", "ASC"]],
-    });
+  async findAll(
+    page?: number,
+    limit?: number
+  ): Promise<
+    | Genero[]
+    | {
+        data: Genero[];
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+      }
+  > {
+    // Si no se especifica paginación, devolver todos los géneros (para mantener compatibilidad)
+    if (!page || !limit) {
+      return this.generoModel.findAll({
+        include: [
+          {
+            model: Estado,
+            as: "estado",
+          },
+        ],
+        order: [["nombre", "ASC"]],
+      });
+    }
+
+    // Con paginación
+    const offset = (page - 1) * limit;
+
+    const { rows: data, count: total } = await this.generoModel.findAndCountAll(
+      {
+        include: [
+          {
+            model: Estado,
+            as: "estado",
+          },
+        ],
+        order: [["nombre", "ASC"]],
+        offset,
+        limit,
+      }
+    );
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages,
+    };
   }
 
   async findOne(id: number): Promise<Genero> {

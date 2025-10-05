@@ -83,7 +83,24 @@ const createLoggerConfig = () => {
         logMessage += `: ${message}`;
 
         if (Object.keys(meta).length > 0) {
-          logMessage += ` ${JSON.stringify(meta)}`;
+          try {
+            // Función para manejar referencias circulares
+            const safeStringify = (obj: any) => {
+              const seen = new WeakSet();
+              return JSON.stringify(obj, (key, value) => {
+                if (typeof value === "object" && value !== null) {
+                  if (seen.has(value)) {
+                    return "[Circular Reference]";
+                  }
+                  seen.add(value);
+                }
+                return value;
+              });
+            };
+            logMessage += ` ${safeStringify(meta)}`;
+          } catch (error) {
+            logMessage += ` [Error serializing log data: ${error.message}]`;
+          }
         }
 
         return logMessage;

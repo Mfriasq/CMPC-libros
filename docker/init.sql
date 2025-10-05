@@ -1,8 +1,15 @@
 -- Script de inicialización completo para Sistema de Biblioteca
 -- Se ejecuta automáticamente al crear el contenedor PostgreSQL
+-- 
+-- Características incluidas:
+-- - Tablas principales: estados, generos, users, libros
+-- - Sistema de auditoría: deletedAt y restoredAt en todas las entidades principales
+-- - Índices optimizados para consultas y soft deletes
+-- - Datos iniciales para desarrollo y testing
 
 -- Crear extensiones útiles
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "unaccent";
 
 -- Configurar zona horaria
 SET TIME ZONE 'America/Santiago';
@@ -22,6 +29,8 @@ CREATE TABLE IF NOT EXISTS "generos" (
   "nombre" VARCHAR(100) NOT NULL UNIQUE,
   "descripcion" TEXT,
   "estadoId" INTEGER DEFAULT 1,
+  "deletedAt" TIMESTAMP WITH TIME ZONE,
+  "restoredAt" TIMESTAMP WITH TIME ZONE,
   "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   FOREIGN KEY ("estadoId") REFERENCES "estados"("id")
@@ -36,6 +45,8 @@ CREATE TABLE IF NOT EXISTS "users" (
   "password" VARCHAR(255) NOT NULL,
   "role" VARCHAR(50) DEFAULT 'user',
   "estadoId" INTEGER DEFAULT 1,
+  "restoredAt" TIMESTAMP WITH TIME ZONE,
+  "deletedAt" TIMESTAMP WITH TIME ZONE,
   "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   FOREIGN KEY ("estadoId") REFERENCES "estados"("id")
@@ -52,8 +63,8 @@ CREATE TABLE IF NOT EXISTS "libros" (
   "imagenUrl" VARCHAR(500),
   "generoId" INTEGER NOT NULL,
   "estadoId" INTEGER DEFAULT 1,
-  "fechaEliminacion" TIMESTAMP WITH TIME ZONE,
-  "fechaRestauracion" TIMESTAMP WITH TIME ZONE,
+  "restoredAt" TIMESTAMP WITH TIME ZONE,
+  "deletedAt" TIMESTAMP WITH TIME ZONE,
   "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   FOREIGN KEY ("generoId") REFERENCES "generos"("id"),
@@ -119,6 +130,32 @@ INSERT INTO "users" ("email", "name", "age", "password", "role", "estadoId") VAL
   ('ana.librarian@biblioteca.com', 'Ana Pérez', 31, '$2b$10$iNJeEbid8AAfxeuVRj9XQulWbi6RHc6Veu9WOliiFF8gUaI5Wz5q2', 'librarian', 1),
   ('luis.user@biblioteca.com', 'Luis González', 29, '$2b$10$cmJrXVjfHI9pgTjK6JCt/OBUz7mXusvuPy6WpZ6RLoegpzbqIppou', 'user', 1)
 ON CONFLICT ("email") DO NOTHING;
+
+-- Crear índices para optimizar consultas
+-- Índices para soft deletes
+CREATE INDEX IF NOT EXISTS idx_libros_deleted_at ON "libros"("deletedAt");
+CREATE INDEX IF NOT EXISTS idx_users_deleted_at ON "users"("deletedAt");
+CREATE INDEX IF NOT EXISTS idx_generos_deleted_at ON "generos"("deletedAt");
+CREATE INDEX IF NOT EXISTS idx_libros_restored_at ON "libros"("restoredAt");
+CREATE INDEX IF NOT EXISTS idx_users_restored_at ON "users"("restoredAt");
+CREATE INDEX IF NOT EXISTS idx_generos_restored_at ON "generos"("restoredAt");
+
+-- Índices para consultas comunes
+CREATE INDEX IF NOT EXISTS idx_libros_estado_id ON "libros"("estadoId");
+CREATE INDEX IF NOT EXISTS idx_users_estado_id ON "users"("estadoId");
+CREATE INDEX IF NOT EXISTS idx_generos_estado_id ON "generos"("estadoId");
+CREATE INDEX IF NOT EXISTS idx_libros_genero_id ON "libros"("generoId");
+CREATE INDEX IF NOT EXISTS idx_libros_titulo ON "libros"("titulo");
+CREATE INDEX IF NOT EXISTS idx_users_email ON "users"("email");
+CREATE INDEX IF NOT EXISTS idx_users_role ON "users"("role");
+
+-- Comentarios para documentar los campos de auditoría
+COMMENT ON COLUMN "libros"."deletedAt" IS 'Fecha de eliminación lógica del libro';
+COMMENT ON COLUMN "libros"."restoredAt" IS 'Fecha de restauración del libro eliminado';
+COMMENT ON COLUMN "users"."deletedAt" IS 'Fecha de eliminación lógica del usuario';
+COMMENT ON COLUMN "users"."restoredAt" IS 'Fecha de restauración del usuario eliminado';
+COMMENT ON COLUMN "generos"."deletedAt" IS 'Fecha de eliminación lógica del género';
+COMMENT ON COLUMN "generos"."restoredAt" IS 'Fecha de restauración del género eliminado';
 
 -- Mensaje de confirmación de inicialización básica
 SELECT 'Estructura básica y datos iniciales cargados correctamente' AS message;

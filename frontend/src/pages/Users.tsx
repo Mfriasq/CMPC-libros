@@ -6,26 +6,20 @@ import {
   CreateUserDto,
   UpdateUserDto,
 } from "../services/usersService";
-import { UserRole, USER_ROLES } from "../constants/UserRoles";
-import { SelectChangeEvent } from "@mui/material";
+
 import {
   Container,
   Typography,
   Box,
-  TextField,
   Button,
   Grid,
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   AppBar,
   Toolbar,
   CircularProgress,
+  Fab,
 } from "@mui/material";
 import { UserCard } from "../components/UserCard";
 import {
@@ -36,6 +30,7 @@ import {
 } from "@mui/icons-material";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
+import UserForm from "../components/UserForm";
 
 const Users: React.FC = () => {
   const { user, logout } = useAuth();
@@ -45,13 +40,7 @@ const Users: React.FC = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
 
-  // Formulario
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-    role: USER_ROLES.USER as UserRole,
-  });
+
 
   useEffect(() => {
     loadUsers();
@@ -79,30 +68,31 @@ const Users: React.FC = () => {
     }
   };
 
-  const handleSubmit = async (e?: React.FormEvent) => {
-    if (e) {
-      e.preventDefault();
-    }
+  const handleSubmit = async (data: any) => {
     try {
       if (editingUser) {
         const updateData: UpdateUserDto = {
-          name: formData.name,
-          email: formData.email,
-          role: formData.role,
+          name: data.name,
+          email: data.email,
+          role: data.role,
         };
         // Solo incluir password si se proporcionó
-        if (formData.password) {
-          updateData.password = formData.password;
+        if (data.password && data.password.trim()) {
+          updateData.password = data.password;
         }
         await usersService.updateUser(editingUser.id, updateData);
         toast.success("Usuario actualizado correctamente");
       } else {
         const createData: CreateUserDto = {
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-          role: formData.role,
+          name: data.name,
+          email: data.email,
+          password: data.password,
+          confirmPassword: data.confirmPassword,
+          role: data.role,
         };
+        if (data.age) {
+          createData.age = data.age;
+        }
         await usersService.createUser(createData);
         toast.success("Usuario creado correctamente");
       }
@@ -124,12 +114,6 @@ const Users: React.FC = () => {
     const userToEdit = users.find((u) => u.id === userId);
     if (userToEdit) {
       setEditingUser(userToEdit);
-      setFormData({
-        name: userToEdit.name,
-        email: userToEdit.email,
-        password: "", // No mostrar password por seguridad
-        role: userToEdit.role,
-      });
       setDialogOpen(true);
     }
   };
@@ -165,12 +149,6 @@ const Users: React.FC = () => {
   const handleCloseDialog = () => {
     setDialogOpen(false);
     setEditingUser(null);
-    setFormData({
-      name: "",
-      email: "",
-      password: "",
-      role: USER_ROLES.USER,
-    });
   };
 
   // Verificar que el usuario sea administrador
@@ -284,82 +262,19 @@ const Users: React.FC = () => {
         <DialogTitle>
           {editingUser ? "Editar Usuario" : "Agregar Nuevo Usuario"}
         </DialogTitle>
-        <form onSubmit={handleSubmit}>
-          <DialogContent>
-            <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Grid item xs={12}>
-                <TextField
-                  autoFocus
-                  fullWidth
-                  label="Nombre de usuario"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  required
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
-                  required
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label={
-                    editingUser ? "Nueva Contraseña (opcional)" : "Contraseña"
-                  }
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) =>
-                    setFormData({ ...formData, password: e.target.value })
-                  }
-                  required={!editingUser}
-                  helperText={
-                    editingUser
-                      ? "Dejar vacío para mantener la contraseña actual"
-                      : ""
-                  }
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <FormControl fullWidth required>
-                  <InputLabel>Rol</InputLabel>
-                  <Select
-                    value={formData.role}
-                    label="Rol"
-                    onChange={(e: SelectChangeEvent) =>
-                      setFormData({
-                        ...formData,
-                        role: e.target.value as UserRole,
-                      })
-                    }
-                  >
-                    <MenuItem value={USER_ROLES.USER}>Usuario</MenuItem>
-                    <MenuItem value={USER_ROLES.LIBRARIAN}>
-                      Bibliotecario
-                    </MenuItem>
-                    <MenuItem value={USER_ROLES.ADMIN}>Administrador</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-            </Grid>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleCloseDialog}>Cancelar</Button>
-            <Button type="submit" variant="contained">
-              {editingUser ? "Actualizar" : "Crear"}
-            </Button>
-          </DialogActions>
-        </form>
+        <DialogContent>
+          <UserForm
+            onSubmit={handleSubmit}
+            onCancel={handleCloseDialog}
+            initialData={editingUser ? {
+              name: editingUser.name,
+              email: editingUser.email,
+              role: editingUser.role,
+            } : undefined}
+            isEditing={!!editingUser}
+            loading={false}
+          />
+        </DialogContent>
       </Dialog>
     </>
   );

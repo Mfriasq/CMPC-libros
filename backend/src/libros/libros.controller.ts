@@ -41,6 +41,10 @@ import {
   CreateLibroDto,
   UpdateLibroDto,
   LibroResponseDto,
+  PaginatedLibroResponseDto,
+  LibroCreatedResponseDto,
+  LibroOperationResponseDto,
+  ErrorResponseDto,
 } from "./dto/libro.dto";
 import { Libro } from "./libro.model";
 
@@ -61,24 +65,84 @@ export class LibrosController {
   @ApiResponse({
     status: 201,
     description: "El libro ha sido creado exitosamente.",
-    type: LibroResponseDto,
+    type: LibroCreatedResponseDto,
+    schema: {
+      example: {
+        message: "Libro creado exitosamente",
+        libro: {
+          id: 1,
+          titulo: "Cien años de soledad",
+          autor: "Gabriel García Márquez",
+          editorial: "Editorial Sudamericana",
+          precio: 15990,
+          disponibilidad: 5,
+          generoId: 1,
+          genero: {
+            id: 1,
+            nombre: "Ficción",
+            descripcion: "Literatura narrativa de carácter imaginativo",
+          },
+          estado: "activo",
+          restoredAt: null,
+          deletedAt: null,
+          createdAt: "2023-12-01T10:30:00Z",
+          updatedAt: "2023-12-01T10:30:00Z",
+          imagenUrl: null,
+        },
+      },
+    },
   })
   @ApiResponse({
     status: 409,
     description: "El libro ya existe.",
+    type: ErrorResponseDto,
+    schema: {
+      example: {
+        message: "Ya existe un libro con ese título y editorial",
+        statusCode: 409,
+        error: "Conflict",
+      },
+    },
   })
   @ApiResponse({
     status: 400,
     description: "Datos de entrada inválidos.",
+    type: ErrorResponseDto,
+    schema: {
+      example: {
+        message: [
+          "El título es requerido",
+          "El precio debe ser un número positivo",
+        ],
+        statusCode: 400,
+        error: "Bad Request",
+      },
+    },
   })
   @ApiResponse({
     status: 403,
     description:
       "Acceso denegado - Se requieren permisos de bibliotecario o administrador.",
+    type: ErrorResponseDto,
+    schema: {
+      example: {
+        message: "Forbidden resource",
+        statusCode: 403,
+        error: "Forbidden",
+      },
+    },
   })
   @ApiResponse({
     status: 401,
     description: "No autorizado - Token requerido.",
+    type: ErrorResponseDto,
+    schema: {
+      example: {
+        message: "Unauthorized",
+        statusCode: 401,
+        error: "Unauthorized",
+      },
+    },
   })
   @AuditBookManagement("CREATE_BOOK")
   async create(
@@ -108,14 +172,54 @@ export class LibrosController {
   @ApiResponse({
     status: 200,
     description: "Lista paginada de libros.",
+    type: PaginatedLibroResponseDto,
+    schema: {
+      example: {
+        data: [
+          {
+            id: 1,
+            titulo: "Cien años de soledad",
+            autor: "Gabriel García Márquez",
+            editorial: "Editorial Sudamericana",
+            precio: 15990,
+            disponibilidad: 5,
+            generoId: 1,
+            genero: {
+              id: 1,
+              nombre: "Ficción",
+              descripcion: "Literatura narrativa de carácter imaginativo",
+            },
+            estado: "activo",
+            restoredAt: null,
+            deletedAt: null,
+            createdAt: "2025-10-01T10:30:00Z",
+            updatedAt: "2025-10-01T10:30:00Z",
+            imagenUrl: "/uploads/libros/cien-anos-soledad.jpg",
+          },
+        ],
+        total: 25,
+        page: 1,
+        limit: 10,
+        totalPages: 3,
+      },
+    },
   })
   @ApiResponse({
     status: 401,
     description: "No autorizado - Token requerido.",
+    type: ErrorResponseDto,
+    schema: {
+      example: {
+        message: "Unauthorized",
+        statusCode: 401,
+        error: "Unauthorized",
+      },
+    },
   })
   async findAll(
     @Query("page") page: number = 1,
-    @Query("limit") limit: number = 10
+    @Query("limit") limit: number = 10,
+    @Request() req: any
   ): Promise<{
     data: Libro[];
     total: number;
@@ -123,7 +227,11 @@ export class LibrosController {
     limit: number;
     totalPages: number;
   }> {
-    return this.librosService.findAll(+page, +limit);
+    const userRole = req.user?.role || "user";
+    // Asegurarse de que page y limit sean números válidos
+    const safePage = isNaN(+page) ? 1 : +page;
+    const safeLimit = isNaN(+limit) ? 10 : +limit;
+    return this.librosService.findAll(safePage, safeLimit, userRole);
   }
 
   @Get("search")
@@ -178,6 +286,7 @@ export class LibrosController {
     description: "No autorizado - Token requerido.",
   })
   async search(
+    @Request() req: any,
     @Query("titulo") titulo?: string,
     @Query("autor") autor?: string,
     @Query("editorial") editorial?: string,
@@ -192,6 +301,10 @@ export class LibrosController {
     limit: number;
     totalPages: number;
   }> {
+    const userRole = req.user?.role || "user";
+    // Asegurarse de que page y limit sean números válidos
+    const safePage = isNaN(+page) ? 1 : +page;
+    const safeLimit = isNaN(+limit) ? 10 : +limit;
     return this.librosService.search(
       {
         titulo,
@@ -200,8 +313,9 @@ export class LibrosController {
         generoId,
         estado,
       },
-      +page,
-      +limit
+      safePage,
+      safeLimit,
+      userRole
     );
   }
 
@@ -468,6 +582,7 @@ export class LibrosController {
   @Header("Content-Type", "text/csv")
   @Header("Content-Disposition", 'attachment; filename="libros.csv"')
   async exportToCsv(
+    @Request() req: any,
     @Res() res: Response,
     @Query("titulo") titulo?: string,
     @Query("autor") autor?: string,
@@ -483,7 +598,8 @@ export class LibrosController {
       estado,
     };
 
-    const csvContent = await this.librosService.exportToCsv(filters);
+    const userRole = req.user?.role || "user";
+    const csvContent = await this.librosService.exportToCsv(filters, userRole);
     res.send(csvContent);
   }
 }

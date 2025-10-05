@@ -56,7 +56,8 @@ export class LibrosService {
 
   async findAll(
     page: number = 1,
-    limit: number = 10
+    limit: number = 10,
+    userRole: string = "user"
   ): Promise<{
     data: Libro[];
     total: number;
@@ -67,7 +68,18 @@ export class LibrosService {
     const { literal } = require("sequelize");
     const offset = (page - 1) * limit;
 
+    // Configurar filtros basados en el rol del usuario
+    const whereCondition: any = {};
+
+    // Solo los usuarios normales ven libros activos únicamente
+    if (userRole === "user") {
+      const estadoActivoId = await this.estadosService.getActivoId();
+      whereCondition.estadoId = estadoActivoId;
+    }
+    // Admin y librarian ven todos los libros (sin filtro de estado)
+
     const { rows: data, count: total } = await this.libroModel.findAndCountAll({
+      where: whereCondition,
       include: [
         {
           model: Genero,
@@ -128,7 +140,9 @@ export class LibrosService {
   async update(id: number, updateLibroDto: UpdateLibroDto): Promise<Libro> {
     const libro = await this.findOne(id);
     await libro.update(updateLibroDto);
-    return libro;
+
+    // Devolver una versión limpia sin referencias circulares
+    return await this.findOne(id);
   }
 
   async eliminar(id: number): Promise<void> {
@@ -144,11 +158,11 @@ export class LibrosService {
     // Obtener ID del estado eliminado
     const estadoEliminadoId = await this.estadosService.getEliminadoId();
 
-    // Soft delete: cambiar estado a ELIMINADO, establecer fecha de eliminación y limpiar fecha de restauración
+    // Soft delete: cambiar estado a ELIMINADO, establecer deletedAt, limpiar fecha de restauración
     await libro.update({
       estadoId: estadoEliminadoId,
-      fechaEliminacion: new Date(),
-      fechaRestauracion: null,
+      deletedAt: new Date(),
+      restoredAt: null,
     });
   }
 
@@ -165,11 +179,11 @@ export class LibrosService {
     // Obtener ID del estado activo
     const estadoActivoId = await this.estadosService.getActivoId();
 
-    // Restaurar: cambiar estado a ACTIVO, limpiar fecha de eliminación y establecer fecha de restauración
+    // Restaurar: cambiar estado a ACTIVO, limpiar deletedAt, establecer fecha de restauración
     await libro.update({
       estadoId: estadoActivoId,
-      fechaEliminacion: null,
-      fechaRestauracion: new Date(),
+      deletedAt: null,
+      restoredAt: new Date(),
     });
 
     return libro;
@@ -185,7 +199,8 @@ export class LibrosService {
       estado?: string;
     },
     page: number = 1,
-    limit: number = 10
+    limit: number = 10,
+    userRole: string = "user"
   ): Promise<{
     data: Libro[];
     total: number;
@@ -195,6 +210,13 @@ export class LibrosService {
   }> {
     const { Op, literal } = require("sequelize");
     const whereConditions: any = {};
+
+    // Solo los usuarios normales ven libros activos únicamente
+    if (userRole === "user") {
+      const estadoActivoId = await this.estadosService.getActivoId();
+      whereConditions.estadoId = estadoActivoId;
+    }
+    // Admin y librarian ven todos los libros (sin filtro de estado)
 
     if (searchParams.titulo) {
       // Búsqueda insensible a acentos usando unaccent
@@ -289,18 +311,28 @@ export class LibrosService {
     return libro;
   }
 
-  async exportToCsv(filters: {
-    titulo?: string;
-    autor?: string;
-    editorial?: string;
-    generoId?: number;
-    estado?: string;
-  }): Promise<string> {
+  async exportToCsv(
+    filters: {
+      titulo?: string;
+      autor?: string;
+      editorial?: string;
+      generoId?: number;
+      estado?: string;
+    },
+    userRole: string = "user"
+  ): Promise<string> {
     const { Op } = require("sequelize");
 
     // Construir condiciones de búsqueda usando la misma lógica que search()
     const whereConditions: any = {};
     const estadoWhereConditions: any = {};
+
+    // Solo los usuarios normales ven libros activos únicamente
+    if (userRole === "user") {
+      const estadoActivoId = await this.estadosService.getActivoId();
+      whereConditions.estadoId = estadoActivoId;
+    }
+    // Admin y librarian ven todos los libros (sin filtro de estado)
 
     if (filters.titulo) {
       whereConditions.titulo = { [Op.iLike]: `%${filters.titulo}%` };

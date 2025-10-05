@@ -56,6 +56,30 @@ export class Genero extends Model<Genero> {
   @HasMany(() => Libro)
   libros: Libro[];
 
+  @Column({
+    type: DataType.DATE,
+    allowNull: true,
+    comment: "Fecha de eliminación del género",
+  })
+  @ApiProperty({
+    description: "Fecha de eliminación del género",
+    example: "2023-12-01T10:30:00Z",
+    required: false,
+  })
+  deletedAt?: Date;
+
+  @Column({
+    type: DataType.DATE,
+    allowNull: true,
+    comment: "Fecha de restauración del género eliminado",
+  })
+  @ApiProperty({
+    description: "Fecha de restauración del género eliminado",
+    example: "2023-12-01T10:30:00Z",
+    required: false,
+  })
+  restoredAt?: Date;
+
   @CreatedAt
   @Column(DataType.DATE)
   @ApiProperty({ description: "Fecha de creación" })

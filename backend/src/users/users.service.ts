@@ -2,13 +2,18 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  UnauthorizedException,
 } from "@nestjs/common";
 import { InjectModel } from "@nestjs/sequelize";
 import * as bcrypt from "bcryptjs";
 import { User } from "./user.model";
 import { Estado } from "../estados/estado.model";
 import { EstadosService } from "../estados/estados.service";
-import { CreateUserDto, UpdateUserDto } from "./dto/user.dto";
+import {
+  CreateUserDto,
+  UpdateUserDto,
+  ChangePasswordDto,
+} from "./dto/user.dto";
 
 @Injectable()
 export class UsersService {
@@ -48,15 +53,41 @@ export class UsersService {
     return await this.userModel.create(userData);
   }
 
-  async findAll(): Promise<User[]> {
-    return await this.userModel.findAll({
+  async findAll(
+    page: number = 1,
+    limit: number = 10
+  ): Promise<{
+    data: User[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
+    const offset = (page - 1) * limit;
+
+    const { rows: data, count: total } = await this.userModel.findAndCountAll({
       include: [
         {
           model: Estado,
           as: "estado",
         },
       ],
+      order: [
+        ["createdAt", "DESC"], // Más recientes primero
+      ],
+      offset,
+      limit,
     });
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages,
+    };
   }
 
   async findAllActive(): Promise<User[]> {
@@ -90,34 +121,61 @@ export class UsersService {
   async update(id: number, updateUserDto: UpdateUserDto): Promise<User> {
     const user = await this.findOne(id);
 
-    // Si se está actualizando la contraseña, hashearla
-    const updateData = { ...updateUserDto };
-    if (updateUserDto.password) {
-      const saltRounds = 10;
-      updateData.password = await bcrypt.hash(
-        updateUserDto.password,
-        saltRounds
-      );
+    // Actualizar datos del usuario (sin contraseña)
+    await user.update(updateUserDto);
+    return user;
+  }
+
+  // Método separado para cambiar contraseña
+  async changePassword(
+    userId: number,
+    changePasswordDto: ChangePasswordDto
+  ): Promise<void> {
+    const user = await this.findOne(userId);
+
+    // Verificar contraseña actual
+    const isCurrentPasswordValid = await bcrypt.compare(
+      changePasswordDto.currentPassword,
+      user.password
+    );
+
+    if (!isCurrentPasswordValid) {
+      throw new UnauthorizedException("La contraseña actual es incorrecta");
     }
 
-    await user.update(updateData);
-    return user;
+    // Hashear nueva contraseña
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(
+      changePasswordDto.newPassword,
+      saltRounds
+    );
+
+    // Actualizar contraseña
+    await user.update({ password: hashedPassword });
   }
 
   async remove(id: number): Promise<void> {
     const user = await this.findOne(id);
     const estadoEliminadoId = await this.estadosService.getEliminadoId();
 
-    // Cambiar estado a eliminado en lugar de eliminar físicamente
-    await user.update({ estadoId: estadoEliminadoId });
+    // Cambiar estado a eliminado, establecer deletedAt y limpiar restoredAt
+    await user.update({
+      estadoId: estadoEliminadoId,
+      deletedAt: new Date(),
+      restoredAt: null,
+    });
   }
 
   async restore(id: number): Promise<User> {
     const user = await this.findOne(id);
     const estadoActivoId = await this.estadosService.getActivoId();
 
-    // Cambiar estado a activo
-    await user.update({ estadoId: estadoActivoId });
+    // Cambiar estado a activo, limpiar deletedAt y establecer restoredAt
+    await user.update({
+      estadoId: estadoActivoId,
+      deletedAt: null,
+      restoredAt: new Date(),
+    });
     return user;
   }
 
