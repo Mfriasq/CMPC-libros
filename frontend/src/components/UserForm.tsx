@@ -1,5 +1,5 @@
-import React from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import React from "react";
+import { useForm, Controller } from "react-hook-form";
 import {
   TextField,
   Button,
@@ -10,9 +10,9 @@ import {
   Select,
   Typography,
   Grid,
-} from '@mui/material';
-import { UserRole, USER_ROLES } from '../constants/UserRoles';
-import PasswordValidationHelp from './PasswordValidationHelp';
+} from "@mui/material";
+import { UserRole, USER_ROLES } from "../constants/UserRoles";
+import PasswordValidationHelp from "./PasswordValidationHelp";
 
 interface UserFormData {
   name: string;
@@ -49,21 +49,21 @@ const UserForm: React.FC<UserFormProps> = ({
     formState: { errors, isDirty },
     watch,
   } = useForm<UserFormData>({
-    mode: 'onChange',
+    mode: "onChange",
     defaultValues: {
-      name: initialData?.name || '',
-      email: initialData?.email || '',
+      name: initialData?.name || "",
+      email: initialData?.email || "",
       role: initialData?.role || USER_ROLES.USER,
       age: initialData?.age || undefined,
-      password: '',
-      confirmPassword: '',
+      password: "",
+      confirmPassword: "",
     },
   });
 
-  const watchPassword = watch('password');
-  const watchConfirmPassword = watch('confirmPassword');
-  const watchName = watch('name');
-  const watchEmail = watch('email');
+  const watchPassword = watch("password");
+  const watchConfirmPassword = watch("confirmPassword");
+  const watchName = watch("name");
+  const watchEmail = watch("email");
 
   const handleFormSubmit = async (data: UserFormData) => {
     try {
@@ -86,39 +86,40 @@ const UserForm: React.FC<UserFormProps> = ({
 
       // Limpiar datos antes del envío
       const cleanData: any = { ...data };
-      
+
       // Eliminar campos vacios opcionales
       if (!cleanData.age) {
         delete cleanData.age;
       }
-      
+
       // Para edición, solo incluir password si se proporcionó
       if (isEditing) {
-        if (!cleanData.password || cleanData.password.trim() === '') {
+        if (!cleanData.password || cleanData.password.trim() === "") {
           delete cleanData.password;
           delete cleanData.confirmPassword;
         }
       }
-      
+
       await onSubmit(cleanData);
     } catch (error) {
-      console.error('Error en el formulario:', error);
+      console.error("Error en el formulario:", error);
     }
   };
 
   // Determinar si el botón debe estar habilitado
   const isSubmitEnabled = () => {
     if (loading) return false;
-    
+
     if (isEditing) {
       // Para edición, habilitar si hay cambios
       return isDirty;
     } else {
       // Para creación, verificar campos requeridos
-      const hasRequiredFields = watchName.trim() && 
-                               watchEmail.trim() && 
-                               watchPassword.trim() && 
-                               watchConfirmPassword.trim();
+      const hasRequiredFields =
+        watchName.trim() &&
+        watchEmail.trim() &&
+        watchPassword.trim() &&
+        watchConfirmPassword.trim();
       const passwordsMatch = watchPassword === watchConfirmPassword;
       return hasRequiredFields && passwordsMatch;
     }
@@ -149,13 +150,27 @@ const UserForm: React.FC<UserFormProps> = ({
             name="email"
             control={control}
             render={({ field }) => {
-              const allowedDomains = ['biblioteca.com', 'library.org', 'edu.cl', 'gov.cl', 'gmail.com', 'outlook.com', 'hotmail.com'];
-              const emailValue = field.value || '';
-              const isValidDomain = emailValue && allowedDomains.some(domain => emailValue.endsWith('@' + domain));
-              
+              const allowedDomains = [
+                "biblioteca.com",
+                "library.org",
+                "edu.cl",
+                "gov.cl",
+                "gmail.com",
+                "outlook.com",
+                "hotmail.com",
+              ];
+              const emailValue = field.value || "";
+              const isValidDomain =
+                emailValue &&
+                allowedDomains.some((domain) =>
+                  emailValue.endsWith("@" + domain)
+                );
+
               let helperText = errors.email?.message;
-              if (!helperText && !isValidDomain && emailValue.includes('@')) {
-                helperText = `Dominios permitidos: ${allowedDomains.join(', ')}`;
+              if (!helperText && !isValidDomain && emailValue.includes("@")) {
+                helperText = `Dominios permitidos: ${allowedDomains.join(
+                  ", "
+                )}`;
               }
 
               return (
@@ -181,16 +196,23 @@ const UserForm: React.FC<UserFormProps> = ({
               <Box>
                 <TextField
                   {...field}
-                  label={isEditing ? "Nueva contraseña (opcional)" : "Contraseña"}
+                  label={
+                    isEditing ? "Nueva contraseña (opcional)" : "Contraseña"
+                  }
                   type="password"
                   fullWidth
                   error={!!errors.password}
-                  helperText={errors.password?.message || (isEditing ? "Dejar vacío para mantener la contraseña actual" : "")}
+                  helperText={
+                    errors.password?.message ||
+                    (isEditing
+                      ? "Dejar vacío para mantener la contraseña actual"
+                      : "")
+                  }
                   disabled={loading}
                 />
                 {(!isEditing || field.value) && (
                   <Box sx={{ mt: 1 }}>
-                    <PasswordValidationHelp password={field.value || ''} />
+                    <PasswordValidationHelp password={field.value || ""} />
                   </Box>
                 )}
               </Box>
@@ -206,27 +228,35 @@ const UserForm: React.FC<UserFormProps> = ({
               render={({ field }) => {
                 const passwordsMatch = watchPassword === field.value;
                 const showMatchIndicator = field.value && watchPassword;
-                
+
                 let helperText = errors.confirmPassword?.message;
                 if (!helperText && showMatchIndicator) {
-                  helperText = passwordsMatch ? 
-                    '✓ Las contraseñas coinciden' : 
-                    'Las contraseñas no coinciden';
+                  helperText = passwordsMatch
+                    ? "✓ Las contraseñas coinciden"
+                    : "Las contraseñas no coinciden";
                 }
-                
+
                 return (
                   <TextField
                     {...field}
                     label="Confirmar contraseña"
                     type="password"
                     fullWidth
-                    error={!!errors.confirmPassword || Boolean(showMatchIndicator && !passwordsMatch)}
+                    error={
+                      !!errors.confirmPassword ||
+                      Boolean(showMatchIndicator && !passwordsMatch)
+                    }
                     helperText={helperText}
                     disabled={loading}
                     sx={{
-                      '& .MuiFormHelperText-root': {
-                        color: showMatchIndicator && passwordsMatch && !errors.confirmPassword ? 'success.main' : undefined
-                      }
+                      "& .MuiFormHelperText-root": {
+                        color:
+                          showMatchIndicator &&
+                          passwordsMatch &&
+                          !errors.confirmPassword
+                            ? "success.main"
+                            : undefined,
+                      },
                     }}
                   />
                 );
@@ -242,19 +272,21 @@ const UserForm: React.FC<UserFormProps> = ({
               name="role"
               control={control}
               render={({ field }) => (
-                <Select
-                  {...field}
-                  label="Rol"
-                  disabled={loading}
-                >
+                <Select {...field} label="Rol" disabled={loading}>
                   <MenuItem value={USER_ROLES.USER}>Usuario</MenuItem>
-                  <MenuItem value={USER_ROLES.LIBRARIAN}>Bibliotecario</MenuItem>
+                  <MenuItem value={USER_ROLES.LIBRARIAN}>
+                    Bibliotecario
+                  </MenuItem>
                   <MenuItem value={USER_ROLES.ADMIN}>Administrador</MenuItem>
                 </Select>
               )}
             />
             {errors.role && (
-              <Typography variant="caption" color="error" sx={{ ml: 2, mt: 0.5 }}>
+              <Typography
+                variant="caption"
+                color="error"
+                sx={{ ml: 2, mt: 0.5 }}
+              >
                 {errors.role.message}
               </Typography>
             )}
@@ -281,12 +313,8 @@ const UserForm: React.FC<UserFormProps> = ({
         </Grid>
       </Grid>
 
-      <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 3 }}>
-        <Button
-          onClick={onCancel}
-          disabled={loading}
-          variant="outlined"
-        >
+      <Box sx={{ display: "flex", gap: 2, justifyContent: "flex-end", mt: 3 }}>
+        <Button onClick={onCancel} disabled={loading} variant="outlined">
           Cancelar
         </Button>
         <Button
@@ -294,13 +322,13 @@ const UserForm: React.FC<UserFormProps> = ({
           variant="contained"
           disabled={!isSubmitEnabled()}
           sx={{
-            backgroundColor: isSubmitEnabled() ? 'primary.main' : 'grey.400',
-            '&:hover': {
-              backgroundColor: isSubmitEnabled() ? 'primary.dark' : 'grey.400',
+            backgroundColor: isSubmitEnabled() ? "primary.main" : "grey.400",
+            "&:hover": {
+              backgroundColor: isSubmitEnabled() ? "primary.dark" : "grey.400",
             },
           }}
         >
-          {loading ? 'Guardando...' : isEditing ? 'Actualizar' : 'Crear'}
+          {loading ? "Guardando..." : isEditing ? "Actualizar" : "Crear"}
         </Button>
       </Box>
     </Box>

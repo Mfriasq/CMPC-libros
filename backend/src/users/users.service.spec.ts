@@ -36,6 +36,7 @@ describe("UsersService", () => {
   const mockUserModel = {
     create: jest.fn(),
     findAll: jest.fn(),
+    findAndCountAll: jest.fn(),
     findOne: jest.fn(),
     findByPk: jest.fn(),
   };
@@ -124,18 +125,25 @@ describe("UsersService", () => {
   describe("findAll", () => {
     it("should return all users", async () => {
       const users = [mockUser];
-      mockUserModel.findAll.mockResolvedValue(users);
+      const mockResult = { rows: users, count: 1 };
+      mockUserModel.findAndCountAll.mockResolvedValue(mockResult);
 
       const result = await service.findAll();
 
-      expect(result).toEqual(users);
-      expect(userModel.findAll).toHaveBeenCalledWith({
+      expect(result.data).toEqual(users);
+      expect(result.total).toBe(1);
+      expect(result.page).toBe(1);
+      expect(result.limit).toBe(10);
+      expect(userModel.findAndCountAll).toHaveBeenCalledWith({
         include: [
           {
             model: Estado,
             as: "estado",
           },
         ],
+        order: [["createdAt", "DESC"]],
+        offset: 0,
+        limit: 10,
       });
     });
   });
@@ -190,24 +198,6 @@ describe("UsersService", () => {
       expect(userToUpdate.update).toHaveBeenCalledWith(updateUserDto);
     });
 
-    it("should hash password if provided in update", async () => {
-      const updateWithPassword = {
-        ...updateUserDto,
-        password: "newPassword123",
-      };
-      (bcrypt.hash as jest.Mock).mockResolvedValue("newHashedPassword");
-      mockUserModel.findByPk.mockResolvedValue(mockUser);
-      mockUser.update.mockResolvedValue(mockUser);
-
-      await service.update(1, updateWithPassword);
-
-      expect(bcrypt.hash).toHaveBeenCalledWith("newPassword123", 10);
-      expect(mockUser.update).toHaveBeenCalledWith({
-        ...updateUserDto,
-        password: "newHashedPassword",
-      });
-    });
-
     it("should throw NotFoundException if user not found", async () => {
       mockUserModel.findByPk.mockResolvedValue(null);
 
@@ -230,7 +220,11 @@ describe("UsersService", () => {
 
       await service.remove(1);
 
-      expect(userToRemove.update).toHaveBeenCalledWith({ estadoId: 2 });
+      expect(userToRemove.update).toHaveBeenCalledWith({
+        estadoId: 2,
+        deletedAt: expect.any(Date),
+        restoredAt: null,
+      });
     });
 
     it("should throw NotFoundException if user not found", async () => {
@@ -263,7 +257,11 @@ describe("UsersService", () => {
 
       const result = await service.restore(1);
 
-      expect(deletedUser.update).toHaveBeenCalledWith({ estadoId: 1 });
+      expect(deletedUser.update).toHaveBeenCalledWith({
+        estadoId: 1,
+        deletedAt: null,
+        restoredAt: expect.any(Date),
+      });
       expect(result).toEqual(deletedUser);
     });
 

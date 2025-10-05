@@ -259,19 +259,42 @@ const Libros: React.FC = () => {
         try {
           await librosService.uploadImage(libroId, image);
           toast.success("Imagen subida correctamente");
-        } catch (imageError) {
-          toast.warn("Libro guardado, pero error al subir la imagen");
+        } catch (imageError: any) {
+          console.error("Error al subir imagen:", imageError);
+
+          // Extraer mensaje específico del backend
+          let errorMessage = "Error al subir la imagen";
+          if (imageError?.response?.data?.message) {
+            errorMessage = imageError.response.data.message;
+          } else if (imageError?.message) {
+            errorMessage = imageError.message;
+          }
+
+          toast.error(`Libro guardado, pero: ${errorMessage}`, {
+            autoClose: 6000,
+          });
         }
       }
 
       loadLibros(true); // Preservar scroll
       handleCloseDialog();
-    } catch (error) {
-      toast.error(
-        editingLibro
-          ? "Error al actualizar el libro"
-          : "Error al crear el libro"
-      );
+    } catch (error: any) {
+      console.error("Error en handleFormSubmit:", error);
+
+      // Extraer mensaje específico del backend
+      let errorMessage = editingLibro
+        ? "Error al actualizar el libro"
+        : "Error al crear el libro";
+
+      if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+
+      toast.error(errorMessage, {
+        autoClose: 5000,
+      });
     }
   };
 
@@ -514,7 +537,17 @@ const Libros: React.FC = () => {
 
         {/* Paginación */}
         {!loading && totalPages > 1 && (
-          <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              mt: 4,
+              backgroundColor: "white",
+              padding: 2,
+              borderRadius: 1,
+              boxShadow: 1,
+            }}
+          >
             <Pagination
               count={totalPages}
               page={currentPage}

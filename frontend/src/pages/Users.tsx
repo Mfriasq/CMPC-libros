@@ -40,8 +40,6 @@ const Users: React.FC = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
 
-
-
   useEffect(() => {
     loadUsers();
   }, []);
@@ -266,11 +264,15 @@ const Users: React.FC = () => {
           <UserForm
             onSubmit={handleSubmit}
             onCancel={handleCloseDialog}
-            initialData={editingUser ? {
-              name: editingUser.name,
-              email: editingUser.email,
-              role: editingUser.role,
-            } : undefined}
+            initialData={
+              editingUser
+                ? {
+                    name: editingUser.name,
+                    email: editingUser.email,
+                    role: editingUser.role,
+                  }
+                : undefined
+            }
             isEditing={!!editingUser}
             loading={false}
           />

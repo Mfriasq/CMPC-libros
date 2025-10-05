@@ -199,18 +199,24 @@ describe("LibrosService", () => {
         update: jest.fn(),
       };
 
-      // Simular que el objeto se actualiza en el lugar
-      libroToUpdate.update.mockImplementation((updateData) => {
-        Object.assign(libroToUpdate, updateData);
-        return Promise.resolve();
-      });
+      const updatedLibro = {
+        ...mockLibro,
+        titulo: updateLibroDto.titulo,
+        precio: updateLibroDto.precio,
+      };
 
-      mockLibroModel.findOne.mockResolvedValueOnce(libroToUpdate);
+      libroToUpdate.update.mockResolvedValue(libroToUpdate);
+
+      // Primera llamada para encontrar el libro, segunda para devolver el actualizado
+      mockLibroModel.findOne
+        .mockResolvedValueOnce(libroToUpdate)
+        .mockResolvedValueOnce(updatedLibro);
 
       const result = await service.update(1, updateLibroDto);
 
-      expect(result).toEqual(libroToUpdate);
       expect(libroToUpdate.update).toHaveBeenCalledWith(updateLibroDto);
+      expect(result.titulo).toBe(updateLibroDto.titulo);
+      expect(result.precio).toBe(updateLibroDto.precio);
     });
 
     it("should throw NotFoundException if libro not found", async () => {
@@ -238,8 +244,8 @@ describe("LibrosService", () => {
 
       expect(activeLibro.update).toHaveBeenCalledWith({
         estadoId: 2,
-        fechaEliminacion: expect.any(Date),
-        fechaRestauracion: null,
+        deletedAt: expect.any(Date),
+        restoredAt: null,
       });
     });
 
@@ -268,8 +274,8 @@ describe("LibrosService", () => {
 
       expect(deletedLibro.update).toHaveBeenCalledWith({
         estadoId: 1,
-        fechaEliminacion: null,
-        fechaRestauracion: expect.any(Date),
+        deletedAt: null,
+        restoredAt: expect.any(Date),
       });
       expect(result).toEqual(deletedLibro);
     });

@@ -14,6 +14,7 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import ClearIcon from "@mui/icons-material/Clear";
+import { toast } from "react-toastify";
 import { libroSchema, LibroFormData } from "../schemas/libroSchema";
 
 interface LibroFormProps {
@@ -154,14 +155,93 @@ export const LibroForm: React.FC<LibroFormProps> = ({
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      setSelectedImage(file);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setPreview(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+
+    if (!file) {
+      return;
     }
+
+    // Validación de tipo de archivo por MIME type
+    const allowedMimeTypes = [
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "image/gif",
+      "image/webp",
+    ];
+
+    if (!allowedMimeTypes.includes(file.type)) {
+      toast.error(
+        `Tipo de archivo no válido. Solo se permiten archivos de imagen (JPG, JPEG, PNG, GIF, WebP). Archivo seleccionado: ${
+          file.type || "tipo desconocido"
+        }`,
+        {
+          autoClose: 5000,
+        }
+      );
+      // Limpiar el input
+      event.target.value = "";
+      return;
+    }
+
+    // Validación de extensión del archivo como seguridad adicional
+    const fileName = file.name.toLowerCase();
+    const allowedExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
+    const hasValidExtension = allowedExtensions.some((ext) =>
+      fileName.endsWith(ext)
+    );
+
+    if (!hasValidExtension) {
+      toast.error(
+        `Extensión de archivo no válida. Solo se permiten: ${allowedExtensions.join(
+          ", "
+        )}. Archivo: ${file.name}`,
+        {
+          autoClose: 5000,
+        }
+      );
+      event.target.value = "";
+      return;
+    }
+
+    // Validación de tamaño de archivo (5MB máximo)
+    const maxSizeInMB = 5;
+    const maxSizeInBytes = maxSizeInMB * 1024 * 1024;
+
+    if (file.size > maxSizeInBytes) {
+      toast.error(
+        `El archivo es muy grande. Tamaño máximo permitido: ${maxSizeInMB}MB. Tamaño del archivo: ${(
+          file.size /
+          (1024 * 1024)
+        ).toFixed(2)}MB`,
+        {
+          autoClose: 5000,
+        }
+      );
+      event.target.value = "";
+      return;
+    }
+
+    // Si todas las validaciones pasan, procesar el archivo
+    setSelectedImage(file);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setPreview(e.target?.result as string);
+      toast.success(`Imagen "${file.name}" seleccionada correctamente`, {
+        autoClose: 3000,
+      });
+    };
+    reader.onerror = () => {
+      toast.error(
+        "Error al leer el archivo. Por favor, intente con otro archivo.",
+        {
+          autoClose: 4000,
+        }
+      );
+      setSelectedImage(null);
+      setPreview("");
+      event.target.value = "";
+    };
+    reader.readAsDataURL(file);
   };
 
   const removeImage = () => {
@@ -219,8 +299,21 @@ export const LibroForm: React.FC<LibroFormProps> = ({
         setErrors({});
         setTouched({});
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error al enviar formulario:", error);
+
+      // Extraer mensaje específico del backend si está disponible
+      let errorMessage = "Error al procesar el formulario";
+
+      if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+
+      toast.error(errorMessage, {
+        autoClose: 5000,
+      });
     } finally {
       setIsSubmitting(false);
     }
