@@ -1,6 +1,7 @@
-import { Module } from "@nestjs/common";
+import { Module, MiddlewareConsumer } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { SequelizeModule } from "@nestjs/sequelize";
+import { APP_INTERCEPTOR, APP_FILTER } from "@nestjs/core";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { UsersModule } from "./users/users.module";
@@ -8,6 +9,10 @@ import { LibrosModule } from "./libros/libros.module";
 import { GenerosModule } from "./generos/generos.module";
 import { AuthModule } from "./auth/auth.module";
 import { EstadosModule } from "./estados/estados.module";
+import { LoggingModule } from "./logging/logging.module";
+import { LoggingInterceptor } from "./logging/logging.interceptor";
+import { RequestLoggingMiddleware } from "./logging/request-logging.middleware";
+import { GlobalExceptionFilter } from "./logging/global-exception.filter";
 import { User } from "./users/user.model";
 import { Libro } from "./libros/libro.model";
 import { Genero } from "./generos/genero.model";
@@ -30,6 +35,7 @@ import { Estado } from "./estados/estado.model";
       synchronize: process.env.NODE_ENV !== "production",
       logging: process.env.NODE_ENV === "development" ? console.log : false,
     }),
+    LoggingModule,
     UsersModule,
     LibrosModule,
     GenerosModule,
@@ -37,6 +43,20 @@ import { Estado } from "./estados/estado.model";
     EstadosModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: LoggingInterceptor,
+    },
+    {
+      provide: APP_FILTER,
+      useClass: GlobalExceptionFilter,
+    },
+  ],
 })
-export class AppModule {}
+export class AppModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(RequestLoggingMiddleware).forRoutes("*"); // Aplicar a todas las rutas
+  }
+}

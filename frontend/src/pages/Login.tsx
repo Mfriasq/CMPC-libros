@@ -13,17 +13,8 @@ import {
   IconButton,
   InputAdornment,
   CircularProgress,
-  Chip,
-  Stack,
 } from "@mui/material";
-import {
-  Visibility,
-  VisibilityOff,
-  Book,
-  AdminPanelSettings,
-  Person,
-  SupervisorAccount,
-} from "@mui/icons-material";
+import { Visibility, VisibilityOff, Book } from "@mui/icons-material";
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState("");

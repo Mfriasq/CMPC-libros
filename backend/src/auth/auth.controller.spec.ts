@@ -1,6 +1,7 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
+import { LoggingService } from "../logging/logging.service";
 import { BadRequestException, UnauthorizedException } from "@nestjs/common";
 
 describe("AuthController", () => {
@@ -10,6 +11,13 @@ describe("AuthController", () => {
   const mockAuthService = {
     login: jest.fn(),
     validateUser: jest.fn(),
+  };
+
+  const mockLoggingService = {
+    auditAuth: jest.fn(),
+    auditSecurity: jest.fn(),
+    log: jest.fn(),
+    error: jest.fn(),
   };
 
   const mockUser = {
@@ -27,6 +35,10 @@ describe("AuthController", () => {
         {
           provide: AuthService,
           useValue: mockAuthService,
+        },
+        {
+          provide: LoggingService,
+          useValue: mockLoggingService,
         },
       ],
     }).compile();
@@ -53,7 +65,8 @@ describe("AuthController", () => {
 
       mockAuthService.login.mockResolvedValue(expectedResult);
 
-      const result = await controller.login(loginDto);
+      const mockReq = { ip: "127.0.0.1", get: jest.fn(() => "test-agent") };
+      const result = await controller.login(loginDto, mockReq);
 
       expect(result).toEqual(expectedResult);
       expect(service.login).toHaveBeenCalledWith(loginDto);
@@ -64,21 +77,24 @@ describe("AuthController", () => {
         new UnauthorizedException("Credenciales inválidas")
       );
 
-      await expect(controller.login(loginDto)).rejects.toThrow(
+      const mockReq = { ip: "127.0.0.1", get: jest.fn(() => "test-agent") };
+      await expect(controller.login(loginDto, mockReq)).rejects.toThrow(
         UnauthorizedException
       );
     });
 
     it("should throw BadRequestException when email is missing", async () => {
       const invalidDto = { password: "password123" } as any;
+      const mockReq = { ip: "127.0.0.1", get: jest.fn(() => "test-agent") };
 
-      await expect(controller.login(invalidDto)).rejects.toThrow();
+      await expect(controller.login(invalidDto, mockReq)).rejects.toThrow();
     });
 
     it("should throw BadRequestException when password is missing", async () => {
       const invalidDto = { email: "test@example.com" } as any;
+      const mockReq = { ip: "127.0.0.1", get: jest.fn(() => "test-agent") };
 
-      await expect(controller.login(invalidDto)).rejects.toThrow();
+      await expect(controller.login(invalidDto, mockReq)).rejects.toThrow();
     });
   });
 

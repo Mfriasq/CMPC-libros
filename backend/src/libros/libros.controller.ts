@@ -16,6 +16,7 @@ import {
   BadRequestException,
   Res,
   Header,
+  Request,
 } from "@nestjs/common";
 import { Response } from "express";
 import { FileInterceptor } from "@nestjs/platform-express";
@@ -34,6 +35,8 @@ import { RolesGuard } from "../auth/roles.guard";
 import { Roles } from "../auth/decorators/roles.decorator";
 import { UserRole } from "../users/user.model";
 import { LibrosService } from "./libros.service";
+import { LoggingService } from "../logging/logging.service";
+import { AuditBookManagement } from "../logging/audit.decorator";
 import {
   CreateLibroDto,
   UpdateLibroDto,
@@ -44,7 +47,10 @@ import { Libro } from "./libro.model";
 @ApiTags("Libros")
 @Controller("libros")
 export class LibrosController {
-  constructor(private readonly librosService: LibrosService) {}
+  constructor(
+    private readonly librosService: LibrosService,
+    private readonly loggingService: LoggingService
+  ) {}
 
   @Post()
   @ApiOperation({ summary: "Crear un nuevo libro" })
@@ -74,8 +80,49 @@ export class LibrosController {
     status: 401,
     description: "No autorizado - Token requerido.",
   })
-  async create(@Body() createLibroDto: CreateLibroDto): Promise<Libro> {
-    return this.librosService.create(createLibroDto);
+  @AuditBookManagement("CREATE_BOOK")
+  async create(
+    @Body() createLibroDto: CreateLibroDto,
+    @Request() req: any
+  ): Promise<Libro> {
+    try {
+      const libro = await this.librosService.create(createLibroDto);
+
+      // Log de auditoría para creación exitosa
+      this.loggingService.auditBookManagement(
+        "CREATE_BOOK_SUCCESS",
+        req.user.id,
+        req.user.email,
+        req.user.role,
+        libro.id,
+        true,
+        {
+          bookTitle: libro.titulo,
+          bookAuthor: libro.autor,
+          bookGenre: libro.generoId,
+        },
+        req
+      );
+
+      return libro;
+    } catch (error) {
+      // Log de auditoría para error en creación
+      this.loggingService.auditBookManagement(
+        "CREATE_BOOK_FAILURE",
+        req.user.id,
+        req.user.email,
+        req.user.role,
+        undefined,
+        false,
+        {
+          bookData: createLibroDto,
+          error: error.message,
+        },
+        req
+      );
+
+      throw error;
+    }
   }
 
   @Get()
@@ -253,11 +300,64 @@ export class LibrosController {
     status: 401,
     description: "No autorizado - Token requerido.",
   })
+  @AuditBookManagement("UPDATE_BOOK")
   async update(
     @Param("id", ParseIntPipe) id: number,
-    @Body() updateLibroDto: UpdateLibroDto
+    @Body() updateLibroDto: UpdateLibroDto,
+    @Request() req: any
   ): Promise<Libro> {
-    return this.librosService.update(id, updateLibroDto);
+    try {
+      // Obtener datos anteriores para auditoría
+      const oldBook = await this.librosService.findOne(id);
+
+      const updatedBook = await this.librosService.update(id, updateLibroDto);
+
+      // Log de cambios para auditoría
+      this.loggingService.logDataChange(
+        "UPDATE",
+        "Book",
+        id,
+        oldBook,
+        updatedBook,
+        req.user.id,
+        req.user.email,
+        req
+      );
+
+      // Log de auditoría para actualización exitosa
+      this.loggingService.auditBookManagement(
+        "UPDATE_BOOK_SUCCESS",
+        req.user.id,
+        req.user.email,
+        req.user.role,
+        id,
+        true,
+        {
+          bookTitle: updatedBook.titulo,
+          changes: updateLibroDto,
+        },
+        req
+      );
+
+      return updatedBook;
+    } catch (error) {
+      // Log de auditoría para error en actualización
+      this.loggingService.auditBookManagement(
+        "UPDATE_BOOK_FAILURE",
+        req.user.id,
+        req.user.email,
+        req.user.role,
+        id,
+        false,
+        {
+          updateData: updateLibroDto,
+          error: error.message,
+        },
+        req
+      );
+
+      throw error;
+    }
   }
 
   @Delete(":id")
@@ -292,8 +392,49 @@ export class LibrosController {
     status: 401,
     description: "No autorizado - Token requerido.",
   })
-  async remove(@Param("id", ParseIntPipe) id: number): Promise<void> {
-    return this.librosService.eliminar(id);
+  @AuditBookManagement("DELETE_BOOK")
+  async remove(
+    @Param("id", ParseIntPipe) id: number,
+    @Request() req: any
+  ): Promise<void> {
+    try {
+      // Obtener datos del libro antes de eliminarlo para auditoría
+      const bookToDelete = await this.librosService.findOne(id);
+
+      await this.librosService.eliminar(id);
+
+      // Log de auditoría para eliminación exitosa
+      this.loggingService.auditBookManagement(
+        "DELETE_BOOK_SUCCESS",
+        req.user.id,
+        req.user.email,
+        req.user.role,
+        id,
+        true,
+        {
+          bookTitle: bookToDelete.titulo,
+          bookAuthor: bookToDelete.autor,
+          deletionType: "soft_delete",
+        },
+        req
+      );
+    } catch (error) {
+      // Log de auditoría para error en eliminación
+      this.loggingService.auditBookManagement(
+        "DELETE_BOOK_FAILURE",
+        req.user.id,
+        req.user.email,
+        req.user.role,
+        id,
+        false,
+        {
+          error: error.message,
+        },
+        req
+      );
+
+      throw error;
+    }
   }
 
   @Patch("restore/:id")

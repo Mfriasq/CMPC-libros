@@ -1,6 +1,7 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { LibrosController } from "./libros.controller";
 import { LibrosService } from "./libros.service";
+import { LoggingService } from "../logging/logging.service";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { RolesGuard } from "../auth/roles.guard";
 import { CreateLibroDto, UpdateLibroDto } from "./dto/libro.dto";
@@ -55,6 +56,14 @@ describe("LibrosController", () => {
     exportToCsv: jest.fn(),
   };
 
+  const mockLoggingService = {
+    auditBookManagement: jest.fn(),
+    logDataChange: jest.fn(),
+    logSystemError: jest.fn(),
+    log: jest.fn(),
+    error: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [LibrosController],
@@ -62,6 +71,10 @@ describe("LibrosController", () => {
         {
           provide: LibrosService,
           useValue: mockLibrosService,
+        },
+        {
+          provide: LoggingService,
+          useValue: mockLoggingService,
         },
       ],
     })
@@ -92,7 +105,12 @@ describe("LibrosController", () => {
 
       mockLibrosService.create.mockResolvedValue(mockLibro);
 
-      const result = await controller.create(createLibroDto);
+      const mockReq = {
+        user: { id: 1, email: "test@example.com", role: "admin" },
+        ip: "127.0.0.1",
+        get: jest.fn(() => "test-agent"),
+      };
+      const result = await controller.create(createLibroDto, mockReq);
 
       expect(result).toEqual(mockLibro);
       expect(service.create).toHaveBeenCalledWith(createLibroDto);
@@ -138,8 +156,14 @@ describe("LibrosController", () => {
 
       const updatedLibro = { ...mockLibro, ...updateLibroDto };
       mockLibrosService.update.mockResolvedValue(updatedLibro);
+      mockLibrosService.findOne.mockResolvedValue(mockLibro); // Mock para obtener datos anteriores
 
-      const result = await controller.update(1, updateLibroDto);
+      const mockReq = {
+        user: { id: 1, email: "test@example.com", role: "admin" },
+        ip: "127.0.0.1",
+        get: jest.fn(() => "test-agent"),
+      };
+      const result = await controller.update(1, updateLibroDto, mockReq);
 
       expect(result).toEqual(updatedLibro);
       expect(service.update).toHaveBeenCalledWith(1, updateLibroDto);
@@ -149,8 +173,14 @@ describe("LibrosController", () => {
   describe("remove", () => {
     it("should remove a libro", async () => {
       mockLibrosService.eliminar.mockResolvedValue(undefined);
+      mockLibrosService.findOne.mockResolvedValue(mockLibro); // Mock para obtener datos del libro
 
-      const result = await controller.remove(1);
+      const mockReq = {
+        user: { id: 1, email: "test@example.com", role: "admin" },
+        ip: "127.0.0.1",
+        get: jest.fn(() => "test-agent"),
+      };
+      const result = await controller.remove(1, mockReq);
 
       expect(result).toBeUndefined();
       expect(service.eliminar).toHaveBeenCalledWith(1);

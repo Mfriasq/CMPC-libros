@@ -19,14 +19,20 @@ import { AuthService } from "./auth.service";
 import { LoginDto, AuthResponseDto } from "./dto/auth.dto";
 import { JwtAuthGuard } from "./jwt-auth.guard";
 import { User } from "../users/user.model";
+import { LoggingService } from "../logging/logging.service";
+import { AuditAuth } from "../logging/audit.decorator";
 
 @ApiTags("Autenticación")
 @Controller("auth")
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly loggingService: LoggingService
+  ) {}
 
   @Post("login")
   @HttpCode(HttpStatus.OK)
+  @AuditAuth("LOGIN_ATTEMPT")
   @ApiOperation({ summary: "Iniciar sesión" })
   @ApiBody({ type: LoginDto })
   @ApiResponse({
@@ -42,8 +48,54 @@ export class AuthController {
     status: 400,
     description: "Datos de entrada inválidos.",
   })
-  async login(@Body() loginDto: LoginDto): Promise<AuthResponseDto> {
-    return this.authService.login(loginDto);
+  async login(
+    @Body() loginDto: LoginDto,
+    @Request() req: any
+  ): Promise<AuthResponseDto> {
+    try {
+      const result = await this.authService.login(loginDto);
+
+      // Log de login exitoso
+      this.loggingService.auditAuth(
+        "LOGIN_SUCCESS",
+        result.user.id,
+        result.user.email,
+        true,
+        {
+          role: result.user.role,
+          loginTime: new Date().toISOString(),
+        },
+        req
+      );
+
+      return result;
+    } catch (error) {
+      // Log de login fallido
+      this.loggingService.auditAuth(
+        "LOGIN_FAILURE",
+        undefined,
+        loginDto.email,
+        false,
+        {
+          error: error.message,
+          attemptTime: new Date().toISOString(),
+        },
+        req
+      );
+
+      // Log de seguridad para intentos fallidos
+      this.loggingService.auditSecurity(
+        "FAILED_LOGIN_ATTEMPT",
+        {
+          email: loginDto.email,
+          error: error.message,
+          timestamp: new Date().toISOString(),
+        },
+        req
+      );
+
+      throw error;
+    }
   }
 
   @Get("profile")
