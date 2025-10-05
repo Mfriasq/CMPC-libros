@@ -116,7 +116,7 @@ export class LoggingInterceptor implements NestInterceptor {
 
   private getOperationType(method: string, url: string): string {
     const upperMethod = method.toUpperCase();
-    
+
     // Detectar operaciones específicas basadas en la URL
     if (url.includes("/login")) return "LOGIN";
     if (url.includes("/register")) return "REGISTER";
@@ -160,12 +160,21 @@ export class LoggingInterceptor implements NestInterceptor {
     const resourceId = this.extractResourceId(url);
 
     // Determinar la categoría y acción apropiadas
-    if (resourceType === "auth" || operation === "LOGIN" || operation === "REGISTER") {
+    if (
+      resourceType === "auth" ||
+      operation === "LOGIN" ||
+      operation === "REGISTER"
+    ) {
       // Autenticación
-      const action = operation === "LOGIN" ? 
-        (result?.success ? "LOGIN_SUCCESS" : "LOGIN_FAILURE") : 
-        operation === "REGISTER" ? "REGISTER_ATTEMPT" : "AUTH_OPERATION";
-      
+      const action =
+        operation === "LOGIN"
+          ? result?.success
+            ? "LOGIN_SUCCESS"
+            : "LOGIN_FAILURE"
+          : operation === "REGISTER"
+            ? "REGISTER_ATTEMPT"
+            : "AUTH_OPERATION";
+
       this.loggingService.auditAuth(
         action,
         userId,
@@ -174,12 +183,13 @@ export class LoggingInterceptor implements NestInterceptor {
         { method, url, ...result },
         request
       );
-    } 
-    else if (resourceType === "users") {
+    } else if (resourceType === "users") {
       // Gestión de usuarios
       if (operation === "READ" || operation === "SEARCH") {
         this.loggingService.auditDataAccess(
-          operation === "SEARCH" ? `SEARCH_${resourceType.toUpperCase()}` : `READ_${resourceType.toUpperCase()}`,
+          operation === "SEARCH"
+            ? `SEARCH_${resourceType.toUpperCase()}`
+            : `READ_${resourceType.toUpperCase()}`,
           userId,
           userEmail,
           resourceType,
@@ -197,14 +207,20 @@ export class LoggingInterceptor implements NestInterceptor {
           request
         );
       }
-    } 
-    else if (resourceType === "libros") {
+    } else if (resourceType === "libros") {
       // Gestión de libros
-      if (operation === "READ" || operation === "SEARCH" || operation === "EXPORT") {
-        const action = operation === "SEARCH" ? `SEARCH_${resourceType.toUpperCase()}` :
-                     operation === "EXPORT" ? `EXPORT_${resourceType.toUpperCase()}` :
-                     `READ_${resourceType.toUpperCase()}`;
-        
+      if (
+        operation === "READ" ||
+        operation === "SEARCH" ||
+        operation === "EXPORT"
+      ) {
+        const action =
+          operation === "SEARCH"
+            ? `SEARCH_${resourceType.toUpperCase()}`
+            : operation === "EXPORT"
+              ? `EXPORT_${resourceType.toUpperCase()}`
+              : `READ_${resourceType.toUpperCase()}`;
+
         this.loggingService.auditDataAccess(
           action,
           userId,
@@ -225,12 +241,13 @@ export class LoggingInterceptor implements NestInterceptor {
           request
         );
       }
-    } 
-    else if (resourceType === "generos" || resourceType === "estados") {
+    } else if (resourceType === "generos" || resourceType === "estados") {
       // Gestión de géneros y estados
       if (operation === "READ" || operation === "SEARCH") {
         this.loggingService.auditDataAccess(
-          operation === "SEARCH" ? `SEARCH_${resourceType.toUpperCase()}` : `READ_${resourceType.toUpperCase()}`,
+          operation === "SEARCH"
+            ? `SEARCH_${resourceType.toUpperCase()}`
+            : `READ_${resourceType.toUpperCase()}`,
           userId,
           userEmail,
           resourceType,
@@ -249,15 +266,20 @@ export class LoggingInterceptor implements NestInterceptor {
           request
         );
       }
-    } 
-    else if (resourceType === "audit") {
+    } else if (resourceType === "audit") {
       // Reportes de auditoría
-      const auditAction = operation === "GENERATE_REPORT" ? "GENERATE_AUDIT_REPORT" :
-                         operation === "VIEW_STATISTICS" ? "VIEW_AUDIT_STATISTICS" :
-                         operation === "VIEW_SUSPICIOUS" ? "VIEW_SUSPICIOUS_ACTIVITY" :
-                         operation === "VIEW_USER_ACTIVITY" ? "VIEW_USER_ACTIVITY" :
-                         operation === "VIEW_SECURITY" ? "VIEW_SECURITY_LOGS" :
-                         `ACCESS_AUDIT_${operation}`;
+      const auditAction =
+        operation === "GENERATE_REPORT"
+          ? "GENERATE_AUDIT_REPORT"
+          : operation === "VIEW_STATISTICS"
+            ? "VIEW_AUDIT_STATISTICS"
+            : operation === "VIEW_SUSPICIOUS"
+              ? "VIEW_SUSPICIOUS_ACTIVITY"
+              : operation === "VIEW_USER_ACTIVITY"
+                ? "VIEW_USER_ACTIVITY"
+                : operation === "VIEW_SECURITY"
+                  ? "VIEW_SECURITY_LOGS"
+                  : `ACCESS_AUDIT_${operation}`;
 
       this.loggingService.auditSecurity(
         auditAction,
@@ -265,8 +287,7 @@ export class LoggingInterceptor implements NestInterceptor {
         request,
         userId
       );
-    } 
-    else {
+    } else {
       // Otros endpoints - usar categoría SYSTEM
       this.loggingService.auditSystem(
         `${operation}_${resourceType.toUpperCase()}`,
@@ -281,24 +302,24 @@ export class LoggingInterceptor implements NestInterceptor {
 
   private extractResourceType(url: string): string {
     // Remover query parameters
-    const cleanUrl = url.split('?')[0];
+    const cleanUrl = url.split("?")[0];
     const segments = cleanUrl.split("/").filter((s) => s);
-    
+
     // Buscar el recurso principal (primer segmento no numérico)
     for (const segment of segments) {
       if (segment && !segment.match(/^\d+$/)) {
         return segment;
       }
     }
-    
+
     return "unknown";
   }
 
   private extractResourceId(url: string): number | undefined {
     // Remover query parameters
-    const cleanUrl = url.split('?')[0];
+    const cleanUrl = url.split("?")[0];
     const segments = cleanUrl.split("/").filter((s) => s);
-    
+
     // Buscar el primer segmento que sea un número (típicamente el ID del recurso)
     for (const segment of segments) {
       const id = parseInt(segment, 10);

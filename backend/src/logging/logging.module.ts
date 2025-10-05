@@ -7,15 +7,7 @@ import { AuditController } from "./audit.controller";
 @Global()
 @Module({
   controllers: [AuditController],
-  providers: [
-    LoggingService,
-    RequestLoggingMiddleware,
-    AuditReportService,
-  ],
-  exports: [
-    LoggingService,
-    RequestLoggingMiddleware,
-    AuditReportService,
-  ],
+  providers: [LoggingService, RequestLoggingMiddleware, AuditReportService],
+  exports: [LoggingService, RequestLoggingMiddleware, AuditReportService],
 })
 export class LoggingModule {}
