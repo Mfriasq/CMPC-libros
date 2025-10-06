@@ -75,7 +75,7 @@ graph TB
 
     subgraph "Data Layer"
         PG[(PostgreSQL Database)]
-        FILES[/uploads/ Static Files]
+        FILES[Static Files Storage]
     end
 
     subgraph "Infrastructure"
