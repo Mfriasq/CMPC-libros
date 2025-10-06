@@ -59,37 +59,42 @@
 ```mermaid
 graph TB
     subgraph "Frontend - React SPA"
-        UI[Material-UI Components]
-        API[Axios HTTP Client]
+        UI[React Components]
+        ROUTER[React Router]
         AUTH[JWT Auth Context]
+        HTTP[Axios HTTP Client]
     end
 
     subgraph "Backend - NestJS API"
         CTRL[Controllers]
-        SVC[Services]
         GUARD[Guards & Interceptors]
-        VALID[Validators]
+        SVC[Services & Business Logic]
+        VALID[DTOs & Validators]
+        UPLOAD[File Upload Service]
     end
 
-    subgraph "Database"
-        PG[(PostgreSQL)]
-        REDIS[(Redis Cache)]
+    subgraph "Data Layer"
+        PG[(PostgreSQL Database)]
+        FILES[/uploads/ Static Files]
     end
 
     subgraph "Infrastructure"
         DOCKER[Docker Containers]
-        NGINX[Reverse Proxy]
-        LOGS[Winston Logging]
+        LOGS[Winston Logging System]
     end
 
-    UI --> API
-    API --> CTRL
+    UI --> ROUTER
+    ROUTER --> AUTH
+    AUTH --> HTTP
+    HTTP --> CTRL
     CTRL --> GUARD
-    GUARD --> SVC
+    GUARD --> VALID
+    VALID --> SVC
     SVC --> PG
-    SVC --> REDIS
+    UPLOAD --> FILES
+    SVC --> UPLOAD
     LOGS --> PG
-    DOCKER --> NGINX
+    LOGS --> FILES
 ```
 
 ---
