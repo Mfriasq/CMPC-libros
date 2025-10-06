@@ -444,7 +444,7 @@ generos/                # Catálogo de géneros literarios
 
 **Diseño Relacional**:
 
-![Modelo Relacional](./modelo.png)
+![Modelo Relacional](./ModeloNew.png)
 
 El sistema utiliza un diseño relacional con las siguientes entidades principales:
 

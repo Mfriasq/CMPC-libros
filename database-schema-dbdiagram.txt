@@ -1,0 +1,155 @@
+// 📚 Sistema de Gestión de Biblioteca - CMPC Libros
+// Diagrama de Base de Datos Actualizado
+// Generado el: 6 de octubre de 2025
+// Incluye todas las características implementadas
+
+Table estados {
+  id integer [primary key, increment, note: 'ID único del estado']
+  nombre varchar(50) [not null, unique, note: 'Nombre del estado (activo, eliminado)']
+  
+  Note: 'Tabla de estados para soft delete - controla el ciclo de vida de las entidades'
+}
+
+Table users {
+  id integer [primary key, increment, note: 'ID único del usuario']
+  email varchar [not null, unique, note: 'Email único del usuario']
+  name varchar [not null, note: 'Nombre completo del usuario']
+  age integer [null, note: 'Edad del usuario (opcional)']
+  password varchar [not null, note: 'Contraseña hasheada con bcrypt']
+  role user_role [not null, default: 'user', note: 'Rol: user, admin, librarian']
+  estadoId integer [not null, ref: > estados.id, note: 'Referencia al estado']
+  restoredAt timestamp [null, note: 'Fecha de restauración después de eliminación']
+  deletedAt timestamp [null, note: 'Fecha de eliminación lógica (soft delete)']
+  createdAt timestamp [not null, default: `now()`, note: 'Fecha de creación']
+  updatedAt timestamp [not null, default: `now()`, note: 'Fecha de última actualización']
+  
+  Note: 'Usuarios del sistema con roles diferenciados y soft delete'
+  indexes {
+    email [unique]
+    estadoId
+    role
+  }
+}
+
+Table generos {
+  id integer [primary key, increment, note: 'ID único del género']
+  nombre varchar [not null, unique, note: 'Nombre del género literario']
+  descripcion text [null, note: 'Descripción detallada del género']
+  estadoId integer [not null, ref: > estados.id, note: 'Referencia al estado']
+  deletedAt timestamp [null, note: 'Fecha de eliminación lógica']
+  restoredAt timestamp [null, note: 'Fecha de restauración']
+  createdAt timestamp [not null, default: `now()`, note: 'Fecha de creación']
+  updatedAt timestamp [not null, default: `now()`, note: 'Fecha de última actualización']
+  
+  Note: 'Géneros literarios con soft delete y auditoría completa'
+  indexes {
+    nombre [unique]
+    estadoId
+  }
+}
+
+Table libros {
+  id integer [primary key, increment, note: 'ID único del libro']
+  titulo varchar [not null, unique, note: 'Título único del libro']
+  autor varchar [not null, note: 'Autor del libro']
+  editorial varchar [not null, note: 'Casa editorial']
+  precio integer [not null, note: 'Precio en pesos chilenos (sin decimales)']
+  disponibilidad integer [not null, default: 0, note: 'Cantidad de ejemplares disponibles']
+  imagenUrl varchar(500) [null, note: 'URL de la imagen de portada del libro']
+  generoId integer [not null, ref: > generos.id, note: 'Referencia al género']
+  estadoId integer [not null, ref: > estados.id, note: 'Referencia al estado']
+  restoredAt timestamp [null, note: 'Fecha de restauración']
+  deletedAt timestamp [null, note: 'Fecha de eliminación lógica']
+  createdAt timestamp [not null, default: `now()`, note: 'Fecha de creación']
+  updatedAt timestamp [not null, default: `now()`, note: 'Fecha de última actualización']
+  
+  Note: 'Libros con gestión de inventario, imágenes y soft delete'
+  indexes {
+    titulo [unique]
+    generoId
+    estadoId
+    autor
+    editorial
+  }
+}
+
+// Definición de enums
+Enum user_role {
+  user
+  admin
+  librarian
+}
+
+// Definición de relaciones
+Ref: users.estadoId > estados.id [note: 'Usuario pertenece a un estado']
+Ref: generos.estadoId > estados.id [note: 'Género pertenece a un estado'] 
+Ref: libros.generoId > generos.id [note: 'Libro pertenece a un género']
+Ref: libros.estadoId > estados.id [note: 'Libro pertenece a un estado']
+
+// Relaciones One-to-Many explícitas
+Ref: generos.id < libros.generoId [note: 'Un género puede tener muchos libros']
+Ref: estados.id < users.estadoId [note: 'Un estado puede tener muchos usuarios']
+Ref: estados.id < generos.estadoId [note: 'Un estado puede tener muchos géneros'] 
+Ref: estados.id < libros.estadoId [note: 'Un estado puede tener muchos libros']
+
+// Notas del sistema
+Note sistema {
+'''
+🏗️ ARQUITECTURA DEL SISTEMA - CMPC LIBROS
+
+📋 CARACTERÍSTICAS PRINCIPALES:
+• Soft Delete: Eliminación lógica preservando datos históricos
+• Auditoría Completa: Timestamps automáticos (createdAt, updatedAt)
+• Gestión de Estados: Control centralizado del ciclo de vida
+• Roles de Usuario: Administrador, Bibliotecario, Usuario
+• Gestión de Inventario: Control de disponibilidad de ejemplares
+• Subida de Imágenes: Portadas de libros con validación
+
+🔄 ESTADOS DISPONIBLES:
+• activo: Entidad disponible para operaciones normales
+• eliminado: Entidad eliminada lógicamente (soft delete)
+
+👥 ROLES DE USUARIO:
+• admin: Acceso completo al sistema
+• librarian: Gestión de libros y usuarios
+• user: Consulta y operaciones básicas
+
+🚀 CARACTERÍSTICAS TÉCNICAS:
+• Base de Datos: PostgreSQL 15
+• ORM: Sequelize con TypeScript
+• API: NestJS con Swagger Documentation
+• Frontend: React con TypeScript
+• Autenticación: JWT con bcrypt
+• Logging: Winston con auditoría completa
+• Testing: Jest con 131+ tests (41% coverage)
+
+📊 ESTADÍSTICAS ACTUALES:
+• 35 géneros literarios precargados
+• 100+ libros de ejemplo
+• 6 usuarios con diferentes roles
+• Sistema de auditoría y logs integrado
+• Subida y servicio de imágenes funcional
+
+🔐 SEGURIDAD:
+• Contraseñas hasheadas con bcrypt (salt rounds: 10)
+• Validación de entrada con class-validator
+• CORS configurado para frontend
+• Headers de seguridad en responses
+• Rate limiting y middleware de logging
+
+📁 ESTRUCTURA DE ARCHIVOS:
+• /uploads/libros/: Imágenes de portadas
+• /logs/: Archivos de auditoría y errores
+• Servicio de archivos estáticos configurado
+
+🎯 FUNCIONALIDADES IMPLEMENTADAS:
+• CRUD completo para todas las entidades
+• Soft delete con posibilidad de restauración
+• Paginación automática en listados
+• Búsqueda y filtrado avanzado
+• Sistema de roles y permisos
+• Subida y gestión de imágenes
+• Logging y auditoría de acciones
+• API RESTful documentada con Swagger
+'''
+}
